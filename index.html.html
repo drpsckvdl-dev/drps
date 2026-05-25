@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DRPS Manager — Cinthia Kliman & VDL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F7F6F2;--surface:#FFFFFF;--surface2:#F0EFE9;--surface3:#E8E6DE;
+  --text:#1A1916;--text2:#6B6860;--text3:#A8A59E;
+  --azul:#1A3A5C;--azul-light:#E8F0F8;--azul-mid:#2D6BAD;
+  --verde:#1A5C3A;--verde-light:#E8F5ED;
+  --amber:#7A4A00;--amber-light:#FFF3E0;
+  --vermelho:#5C1A1A;--vermelho-light:#FDEAEA;
+  --border:rgba(26,25,22,0.1);--border2:rgba(26,25,22,0.06);
+  --shadow:0 1px 4px rgba(0,0,0,0.06),0 4px 16px rgba(0,0,0,0.04);
+  --shadow-md:0 2px 8px rgba(0,0,0,0.08),0 8px 24px rgba(0,0,0,0.06);
+  --radius:10px;--radius-sm:6px;--radius-lg:14px;
+  --font:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.6}
+
+/* LAYOUT */
+.app{display:flex;min-height:100vh}
+.sidebar{width:220px;background:var(--azul);padding:0;display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100}
+.main{margin-left:220px;flex:1;min-height:100vh}
+
+/* SIDEBAR */
+.sb-logo{padding:24px 20px 20px;border-bottom:1px solid rgba(255,255,255,0.08)}
+.sb-brand{font-size:15px;font-weight:600;color:#fff;letter-spacing:-.3px}
+.sb-brand span{color:#7EB8E8}
+.sb-sub{font-size:11px;color:rgba(255,255,255,0.45);margin-top:2px}
+.sb-nav{padding:12px 0;flex:1}
+.sb-section{font-size:10px;color:rgba(255,255,255,0.3);letter-spacing:.08em;text-transform:uppercase;padding:16px 20px 6px;font-weight:500}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 20px;cursor:pointer;color:rgba(255,255,255,0.6);font-size:13px;font-weight:400;transition:all .15s;position:relative;border:none;background:none;width:100%;text-align:left}
+.nav-item:hover{color:#fff;background:rgba(255,255,255,0.06)}
+.nav-item.active{color:#fff;background:rgba(255,255,255,0.12);font-weight:500}
+.nav-item.active::before{content:'';position:absolute;left:0;top:6px;bottom:6px;width:3px;background:#7EB8E8;border-radius:0 2px 2px 0}
+.nav-item svg{width:16px;height:16px;flex-shrink:0;opacity:.7}
+.nav-item.active svg{opacity:1}
+.nav-badge{margin-left:auto;font-size:10px;font-weight:600;padding:2px 7px;border-radius:999px}
+.nb-warn{background:rgba(239,159,39,0.2);color:#F9C75F}
+.nb-ok{background:rgba(39,155,80,0.2);color:#6FCF97}
+.sb-footer{padding:16px 20px;border-top:1px solid rgba(255,255,255,0.08)}
+.sb-user{font-size:12px;color:rgba(255,255,255,0.5)}
+.sb-user strong{color:rgba(255,255,255,0.85);display:block}
+
+/* TOPBAR */
+.topbar{background:var(--surface);border-bottom:1px solid var(--border2);padding:16px 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.page-title{font-size:18px;font-weight:600;letter-spacing:-.4px}
+.page-sub{font-size:12px;color:var(--text3);margin-top:1px}
+.top-actions{display:flex;gap:8px;align-items:center}
+
+/* CONTEÚDO */
+.content{padding:28px 32px;max-width:1100px}
+.pane{display:none}.pane.active{display:block}
+
+/* CARDS */
+.card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:20px 24px;margin-bottom:16px;box-shadow:var(--shadow)}
+.card-header{display:flex;align-items:center;gap:12px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border2)}
+.card-icon{width:38px;height:38px;border-radius:var(--radius);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ci-blue{background:var(--azul-light)}
+.ci-green{background:var(--verde-light)}
+.ci-amber{background:var(--amber-light)}
+.card-title{font-size:14px;font-weight:600;color:var(--text)}
+.card-desc{font-size:12px;color:var(--text3);margin-top:1px}
+
+/* METRICS */
+.metrics-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px}
+.metric{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:18px 20px;box-shadow:var(--shadow)}
+.metric-val{font-size:28px;font-weight:600;letter-spacing:-1px;line-height:1}
+.metric-lbl{font-size:12px;color:var(--text3);margin-bottom:6px}
+.metric-sub{font-size:11px;color:var(--text3);margin-top:4px}
+.mv-blue{color:var(--azul-mid)}
+.mv-green{color:#1A7A45}
+.mv-amber{color:#B06A00}
+.mv-red{color:#C0392B}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:500;padding:3px 9px;border-radius:999px;letter-spacing:.01em}
+.b-ok{background:#E8F5ED;color:#1A5C3A}
+.b-info{background:#E8F0F8;color:#1A3A5C}
+.b-warn{background:#FFF3E0;color:#7A4A00}
+.b-err{background:#FDEAEA;color:#5C1A1A}
+.b-neu{background:var(--surface2);color:var(--text2)}
+
+/* ALERTAS */
+.alert{display:flex;align-items:flex-start;gap:10px;padding:12px 16px;border-radius:var(--radius);font-size:13px;margin-bottom:8px;border:1px solid}
+.al-w{background:#FFFBF0;border-color:#F9C75F;color:#7A4A00}
+.al-i{background:#F0F5FB;border-color:#90B8E0;color:#1A3A5C}
+.al-ok{background:#EFF8F2;border-color:#6FCF97;color:#1A5C3A}
+.al-e{background:#FDF2F2;border-color:#F5A5A5;color:#5C1A1A}
+.alert svg{width:16px;height:16px;flex-shrink:0;margin-top:1px}
+.alert-content strong{font-weight:600}
+.alert-content{flex:1}
+
+/* FORMULÁRIO */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-full{grid-column:1/-1}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:12px;font-weight:500;color:var(--text2)}
+.field input,.field select,.field textarea{
+  font-family:var(--font);font-size:13px;padding:9px 12px;
+  border:1px solid var(--border);border-radius:var(--radius-sm);
+  background:var(--surface);color:var(--text);outline:none;transition:.15s;
+}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--azul-mid);box-shadow:0 0 0 3px rgba(45,107,173,.1)}
+.field input:read-only{background:var(--surface2);color:var(--azul-mid);font-weight:500;font-family:var(--mono)}
+.field textarea{resize:vertical;min-height:70px;line-height:1.5}
+.field-note{font-size:11px;color:var(--text3)}
+.section-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin:20px 0 10px}
+
+/* BOTÕES */
+.btn{display:inline-flex;align-items:center;gap:7px;font-family:var(--font);font-size:13px;font-weight:500;padding:9px 16px;border-radius:var(--radius-sm);cursor:pointer;transition:all .15s;border:1px solid;text-decoration:none}
+.btn-primary{background:var(--azul);color:#fff;border-color:var(--azul)}
+.btn-primary:hover{background:#0F2540}
+.btn-secondary{background:var(--surface);color:var(--text);border-color:var(--border)}
+.btn-secondary:hover{background:var(--surface2)}
+.btn-success{background:var(--verde);color:#fff;border-color:var(--verde)}
+.btn-success:hover{background:#0F3A22}
+.btn-sm{padding:6px 12px;font-size:12px}
+.btn-group{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;padding-top:16px;border-top:1px solid var(--border2)}
+
+/* CLIENTE LISTA */
+.client-list{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow)}
+.client-item{display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid var(--border2);cursor:pointer;transition:.1s}
+.client-item:last-child{border-bottom:none}
+.client-item:hover{background:var(--surface2)}
+.avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0}
+.av-blue{background:#DAEAF8;color:#1A3A5C}
+.av-green{background:#D5EFE0;color:#1A5C3A}
+.av-amber{background:#FFE8C0;color:#7A4A00}
+.av-red{background:#FBDADA;color:#5C1A1A}
+.av-purple{background:#EDE8FB;color:#3A1A6B}
+.client-info{flex:1}
+.client-name{font-size:13px;font-weight:600;color:var(--text)}
+.client-meta{font-size:11px;color:var(--text3);margin-top:1px}
+.progress-wrap{display:flex;align-items:center;gap:8px}
+.progress-bar{width:70px;height:4px;background:var(--surface3);border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;border-radius:2px;transition:width .3s}
+.pf-green{background:#27AE60}.pf-amber{background:#F39C12}.pf-red{background:#E74C3C}
+.progress-txt{font-size:11px;color:var(--text3);min-width:28px}
+
+/* KANBAN */
+.kanban{display:flex;gap:10px;overflow-x:auto;padding-bottom:8px}
+.kanban::-webkit-scrollbar{height:5px}
+.kanban::-webkit-scrollbar-track{background:var(--surface2);border-radius:3px}
+.kanban::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:3px}
+.k-col{min-width:160px;flex-shrink:0}
+.k-header{font-size:11px;font-weight:600;color:var(--text2);padding:7px 10px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-sm);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.k-card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:7px;cursor:pointer;transition:.1s;box-shadow:var(--shadow)}
+.k-card:hover{border-color:var(--azul-mid);transform:translateY(-1px);box-shadow:var(--shadow-md)}
+.k-name{font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px}
+.k-info{font-size:11px;color:var(--text3)}
+.k-alert{font-size:11px;color:var(--amber);margin-top:4px;display:flex;align-items:center;gap:4px}
+
+/* EIXOS */
+.eixo-table{width:100%}
+.eixo-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border2);font-size:12px}
+.eixo-row:last-child{border-bottom:none}
+.eixo-num{font-family:var(--mono);font-size:10px;color:var(--text3);min-width:22px}
+.eixo-name{flex:1;color:var(--text2)}
+.eixo-bar{width:80px;height:5px;background:var(--surface3);border-radius:3px;overflow:hidden;flex-shrink:0}
+.eixo-fill{height:100%;border-radius:3px;transition:width .4s}
+.ef-low{background:#27AE60}.ef-med{background:#F39C12}.ef-hi{background:#E74C3C}
+.eixo-val{font-family:var(--mono);font-size:12px;font-weight:500;min-width:28px;text-align:right;color:var(--text)}
+.eixo-grav{font-size:10px;font-weight:600;padding:2px 7px;border-radius:999px;min-width:48px;text-align:center}
+.gv-l{background:#E8F5ED;color:#1A5C3A}.gv-m{background:#FFF3E0;color:#7A4A00}.gv-h{background:#FDEAEA;color:#5C1A1A}.gv-c{background:#5C1A1A;color:#fff}
+.eixo-prob select{font-size:11px;padding:3px 7px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text);cursor:pointer;font-family:var(--font)}
+.eixo-risco{font-size:10px;font-weight:600;padding:2px 7px;border-radius:999px;min-width:52px;text-align:center}
+
+/* STATUS TRACKER */
+.tracker{display:flex;flex-direction:column;gap:0}
+.track-item{display:flex;align-items:flex-start;gap:14px;padding:12px 0;position:relative}
+.track-item:not(:last-child)::after{content:'';position:absolute;left:17px;top:38px;bottom:-12px;width:2px;background:var(--border2)}
+.track-dot{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;border:2px solid}
+.td-done{background:var(--verde-light);border-color:#6FCF97;color:var(--verde)}
+.td-active{background:var(--azul-light);border-color:#90B8E0;color:var(--azul)}
+.td-pend{background:var(--surface2);border-color:var(--border);color:var(--text3)}
+.track-content{flex:1;padding-top:6px}
+.track-title{font-size:13px;font-weight:600;color:var(--text)}
+.track-desc{font-size:12px;color:var(--text3);margin-top:1px}
+.track-status{margin-left:auto;padding-top:6px}
+
+/* LINK BOX */
+.link-box{background:var(--azul-light);border:1px solid #90B8E0;border-radius:var(--radius-sm);padding:10px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:.1s;margin-top:8px}
+.link-box:hover{background:#D8E8F5}
+.link-box.success{background:var(--verde-light);border-color:#6FCF97}
+.link-txt{flex:1;font-family:var(--mono);font-size:11px;color:var(--azul-mid);word-break:break-all}
+.link-box.success .link-txt{color:var(--verde)}
+
+/* OUTPUT */
+.output{background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:14px 16px;font-size:12px;color:var(--text2);line-height:1.8;white-space:pre-wrap;max-height:300px;overflow-y:auto;margin-top:12px;display:none;font-family:var(--mono)}
+.loading{display:none;align-items:center;gap:10px;padding:12px 0;color:var(--text3);font-size:13px}
+.dots{display:flex;gap:4px}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--azul-mid);animation:bounce .8s ease-in-out infinite}
+.dot:nth-child(2){animation-delay:.15s}.dot:nth-child(3){animation-delay:.3s}
+@keyframes bounce{0%,100%{opacity:.2;transform:scale(.8)}50%{opacity:1;transform:scale(1)}}
+
+/* INFO BOX */
+.info-box{background:var(--surface2);border-radius:var(--radius-sm);padding:14px 16px;font-size:12px;color:var(--text2);line-height:1.9;margin-bottom:12px}
+.info-box strong{color:var(--text);font-weight:600}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:999;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border-radius:var(--radius-lg);padding:24px;max-width:480px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.2)}
+.modal-title{font-size:16px;font-weight:600;margin-bottom:4px}
+.modal-sub{font-size:13px;color:var(--text3);margin-bottom:20px}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--text);color:#fff;padding:12px 18px;border-radius:var(--radius);font-size:13px;font-weight:500;z-index:9999;transform:translateY(100px);transition:.3s;pointer-events:none}
+.toast.show{transform:translateY(0)}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:3px}
+
+/* SEARCH */
+.search-bar{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;margin-bottom:14px}
+.search-bar svg{width:15px;height:15px;color:var(--text3);flex-shrink:0}
+.search-bar input{border:none;outline:none;font-family:var(--font);font-size:13px;color:var(--text);background:transparent;flex:1}
+
+/* SETOR TABS */
+.setor-tabs{display:flex;gap:4px;margin-bottom:14px;flex-wrap:wrap}
+.setor-tab{padding:5px 12px;font-size:12px;font-weight:500;border:1px solid var(--border);border-radius:999px;cursor:pointer;background:var(--surface);color:var(--text2);transition:.1s}
+.setor-tab.active{background:var(--azul);color:#fff;border-color:var(--azul)}
+
+/* RESPONSIVE */
+@media(max-width:768px){.sidebar{width:60px}.main{margin-left:60px}.sb-brand,.sb-sub,.sb-section,.nav-item span,.nav-badge,.sb-footer .sb-user{display:none}.nav-item{justify-content:center;padding:12px}.content{padding:16px}}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sb-logo">
+    <div class="sb-brand">DRPS <span>Manager</span></div>
+    <div class="sb-sub">NR-1 · Gestão Psicossocial</div>
+  </div>
+  <div class="sb-nav">
+    <div class="sb-section">Principal</div>
+    <button class="nav-item active" onclick="nav('dash',this)" title="Dashboard">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1" stroke-width="2"/><rect x="14" y="3" width="7" height="7" rx="1" stroke-width="2"/><rect x="3" y="14" width="7" height="7" rx="1" stroke-width="2"/><rect x="14" y="14" width="7" height="7" rx="1" stroke-width="2"/></svg>
+      <span>Dashboard</span>
+    </button>
+    <button class="nav-item" onclick="nav('pipeline',this)" title="Pipeline">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18" stroke-width="2"/></svg>
+      <span>Pipeline</span>
+      <span class="nav-badge nb-warn" id="nb-pipeline">7</span>
+    </button>
+    <div class="sb-section">Processo DRPS</div>
+    <button class="nav-item" onclick="nav('cadastro',this)" title="Cadastro">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" stroke-width="2"/></svg>
+      <span>Novo Cliente</span>
+    </button>
+    <button class="nav-item" onclick="nav('clientes',this)" title="Clientes">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" stroke-width="2"/></svg>
+      <span>Clientes</span>
+      <span class="nav-badge nb-ok" id="nb-clientes">5</span>
+    </button>
+    <button class="nav-item" onclick="nav('contrato',this)" title="Contrato">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-width="2"/></svg>
+      <span>Contrato</span>
+    </button>
+    <button class="nav-item" onclick="nav('formulario',this)" title="Formulário">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" stroke-width="2"/></svg>
+      <span>Formulário DRPS</span>
+    </button>
+    <button class="nav-item" onclick="nav('respostas',this)" title="Respostas">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" stroke-width="2"/></svg>
+      <span>Respostas</span>
+    </button>
+    <button class="nav-item" onclick="nav('laudo',this)" title="Laudo">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" stroke-width="2"/></svg>
+      <span>Gerar Laudo</span>
+    </button>
+  </div>
+  <div class="sb-footer">
+    <div class="sb-user"><strong>Cinthia & VDL</strong>DRPS Manager v1.0</div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div class="main">
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div>
+    <div class="page-title" id="page-title">Dashboard</div>
+    <div class="page-sub" id="page-sub">Visão geral do pipeline de clientes</div>
+  </div>
+  <div class="top-actions">
+    <div style="font-size:12px;color:var(--text3)" id="clock"></div>
+    <button class="btn btn-primary btn-sm" onclick="nav('cadastro',null)">
+      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" stroke-width="2.5"/></svg>
+      Novo cliente
+    </button>
+  </div>
+</div>
+
+<div class="content">
+
+<!-- ═══════════════════ DASHBOARD ═══════════════════ -->
+<div id="pane-dash" class="pane active">
+  <div class="metrics-grid">
+    <div class="metric"><div class="metric-lbl">Clientes ativos</div><div class="metric-val mv-blue" id="m-ativos">5</div><div class="metric-sub">total no sistema</div></div>
+    <div class="metric"><div class="metric-lbl">Em coleta</div><div class="metric-val mv-amber" id="m-coleta">2</div><div class="metric-sub">aguardando respostas</div></div>
+    <div class="metric"><div class="metric-lbl">Laudos entregues</div><div class="metric-val mv-green" id="m-laudos">4</div><div class="metric-sub">este ano</div></div>
+    <div class="metric"><div class="metric-lbl">Receita pipeline</div><div class="metric-val mv-blue" id="m-receita">R$0</div><div class="metric-sub">estimada</div></div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div>
+      <div class="section-label">Alertas ativos</div>
+      <div id="alertas-dash">
+        <div class="alert al-i"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2"/></svg><div class="alert-content">Nenhum alerta. Cadastre clientes para começar.</div></div>
+      </div>
+    </div>
+    <div>
+      <div class="section-label">Clientes recentes</div>
+      <div id="recentes-dash" class="client-list">
+        <div class="client-item" style="justify-content:center;color:var(--text3);font-size:13px;cursor:default">Nenhum cliente cadastrado</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ PIPELINE ════════════════════ -->
+<div id="pane-pipeline" class="pane">
+  <div class="kanban" id="kanban-board"></div>
+</div>
+
+<!-- ═══════════════════ CADASTRO ════════════════════ -->
+<div id="pane-cadastro" class="pane">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon ci-blue">
+        <svg width="20" height="20" fill="none" stroke="#1A3A5C" viewBox="0 0 24 24"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" stroke-width="2"/></svg>
+      </div>
+      <div><div class="card-title">Cadastrar novo cliente</div><div class="card-desc">Preencha os dados da empresa contratante</div></div>
+    </div>
+
+    <div class="section-label">Identificação</div>
+    <div class="form-grid">
+      <div class="field form-full"><label>Razão social *</label><input id="f-nome" type="text" placeholder="Nome completo da empresa"></div>
+      <div class="field"><label>CNPJ *</label><input id="f-cnpj" type="text" placeholder="00.000.000/0001-00" oninput="calcValorAuto();gerarLinkAuto()"></div>
+      <div class="field"><label>Setor de atividade</label><select id="f-ativ"><option>Educação</option><option>Saúde</option><option>Varejo</option><option>Tecnologia</option><option>Indústria</option><option>Logística</option><option>Serviços</option><option>Financeiro</option><option>Outro</option></select></div>
+      <div class="field form-full"><label>Endereço completo</label><input id="f-end" type="text" placeholder="Rua, número, bairro, cidade/UF, CEP"></div>
+    </div>
+
+    <div class="section-label">Contato</div>
+    <div class="form-grid">
+      <div class="field"><label>Nome do responsável</label><input id="f-resp" type="text" placeholder="Nome completo"></div>
+      <div class="field"><label>Cargo</label><input id="f-cargo" type="text" placeholder="Diretor, Gerente de RH..."></div>
+      <div class="field"><label>CPF do responsável</label><input id="f-cpf" type="text" placeholder="000.000.000-00"></div>
+      <div class="field"><label>E-mail</label><input id="f-email" type="email" placeholder="contato@empresa.com"></div>
+      <div class="field"><label>Telefone / WhatsApp</label><input id="f-tel" type="text" placeholder="(11) 99999-9999"></div>
+    </div>
+
+    <div class="section-label">Estrutura organizacional</div>
+    <div class="form-grid">
+      <div class="field"><label>Total de colaboradores *</label><input id="f-colab" type="number" placeholder="Ex: 80" oninput="calcValorAuto()"></div>
+      <div class="field"><label>Nº de setores (máx 10)</label><input id="f-nset" type="number" placeholder="Ex: 5" max="10"></div>
+      <div class="field form-full"><label>Nome dos setores (um por linha) *</label><textarea id="f-setores" placeholder="Administrativo&#10;Operacional&#10;Atendimento&#10;TI" rows="4"></textarea></div>
+    </div>
+
+    <div class="section-label">Condições comerciais</div>
+    <div class="form-grid">
+      <div class="field"><label>Valor calculado automaticamente</label><input id="f-valor" type="text" readonly placeholder="Preencha os colaboradores"></div>
+      <div class="field"><label>Forma de pagamento</label><select id="f-pgto"><option>50% na assinatura + 50% na entrega</option><option>100% na assinatura</option><option>100% na entrega</option><option>3x iguais</option><option>A combinar</option></select></div>
+      <div class="field"><label>Data da assinatura</label><input id="f-data" type="date"></div>
+      <div class="field"><label>Prazo de entrega do laudo</label><select id="f-prazo"><option>7 dias úteis após coleta</option><option>10 dias úteis após coleta</option><option>15 dias úteis após coleta</option><option>A combinar</option></select></div>
+      <div class="field form-full"><label>Observações / contexto</label><textarea id="f-obs" placeholder="Histórico de afastamentos, conflitos conhecidos, pontos de atenção..." rows="3"></textarea></div>
+    </div>
+
+    <div class="btn-group">
+      <button class="btn btn-primary" onclick="salvarCliente()">
+        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" stroke-width="2"/></svg>
+        Salvar cliente
+      </button>
+      <button class="btn btn-secondary" onclick="gerarProposta()">Gerar proposta ↗</button>
+      <button class="btn btn-secondary" onclick="gerarEmailBV()">E-mail boas-vindas ↗</button>
+    </div>
+  </div>
+
+  <!-- STATUS TRACKER -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon ci-blue"><svg width="20" height="20" fill="none" stroke="#1A3A5C" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" stroke-width="2"/></svg></div>
+      <div><div class="card-title">Progresso do processo</div><div class="card-desc" id="tracker-cliente">Nenhum cliente selecionado</div></div>
+    </div>
+    <div class="tracker" id="tracker"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════ CLIENTES ════════════════════ -->
+<div id="pane-clientes" class="pane">
+  <div class="search-bar">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-width="2"/></svg>
+    <input type="text" placeholder="Buscar por nome ou CNPJ..." oninput="filtrarClientes(this.value)" id="search-input">
+  </div>
+  <div class="client-list" id="lista-clientes">
+    <div class="client-item" style="justify-content:center;color:var(--text3);font-size:13px;cursor:default">Nenhum cliente cadastrado</div>
+  </div>
+  <div style="margin-top:12px;text-align:center">
+    <button class="btn btn-secondary btn-sm" onclick="nav('cadastro',null)">+ Adicionar cliente</button>
+  </div>
+</div>
+
+<!-- ═══════════════════ CONTRATO ════════════════════ -->
+<div id="pane-contrato" class="pane">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon ci-blue"><svg width="20" height="20" fill="none" stroke="#1A3A5C" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-width="2"/></svg></div>
+      <div><div class="card-title">Gerar contrato</div><div class="card-desc">Baseado no modelo VDL — 8 cláusulas + Anexo I</div></div>
+      <span class="badge b-info" style="margin-left:auto">Modelo Pirilampos</span>
+    </div>
+
+    <div class="section-label">Selecionar cliente</div>
+    <div class="field" style="max-width:360px;margin-bottom:16px">
+      <select id="sel-cliente-cont" onchange="preencherContrato()">
+        <option value="">— Selecione um cliente —</option>
+      </select>
+    </div>
+
+    <div class="info-box">
+      <strong>Cláusulas incluídas:</strong> 1ª Objeto · 2ª Duração · 3ª Pagamento e encargos · 4ª Obrigações das partes · 5ª Confidencialidade / LGPD · 6ª Uso de imagem · 7ª Rescisão · 8ª Disposições gerais<br>
+      <strong>Anexo I:</strong> Etapas do trabalho personalizadas com setores e cronograma do cliente
+    </div>
+
+    <div id="cont-preview" style="display:none">
+      <div class="section-label">Dados para o contrato</div>
+      <div id="cont-dados" style="background:var(--surface2);border-radius:var(--radius-sm);padding:14px;font-size:12px;line-height:2;color:var(--text2);margin-bottom:12px"></div>
+    </div>
+
+    <div class="loading" id="cont-load"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>Gerando contrato... Copie o resultado do Claude e cole no Google Docs.</div>
+
+    <div class="btn-group">
+      <button class="btn btn-primary" onclick="gerarContrato()"><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" stroke-width="2"/></svg>Gerar contrato completo ↗</button>
+      <button class="btn btn-secondary" onclick="gerarAnexo()">Gerar Anexo I ↗</button>
+      <button class="btn btn-secondary" onclick="gerarClauPgto()">Cláusula de pagamento ↗</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ FORMULÁRIO ══════════════════ -->
+<div id="pane-formulario" class="pane">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon ci-blue"><svg width="20" height="20" fill="none" stroke="#1A3A5C" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" stroke-width="2"/></svg></div>
+      <div><div class="card-title">Formulário DRPS — Link personalizado</div><div class="card-desc">13 eixos NR-1 · Anônimo · Escala 0–4 · CNPJ pré-preenchido</div></div>
+    </div>
+
+    <div class="section-label">Selecionar cliente</div>
+    <div class="field" style="max-width:360px;margin-bottom:16px">
+      <select id="sel-cliente-form" onchange="gerarLinkCliente()">
+        <option value="">— Selecione um cliente —</option>
+      </select>
+    </div>
+
+    <div class="section-label">Link do formulário</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:8px">Link base (sem CNPJ):</div>
+    <div class="link-box" onclick="copiarTexto(LINK_BASE,'Link copiado!')">
+      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101" stroke-width="2"/></svg>
+      <span class="link-txt" id="link-base-display">https://docs.google.com/forms/d/e/1FAIpQLSfYtu8wLTRUvxWGGsvqHll6QcMCrDM57Z0ltRjo9FygKJW7Tg/viewform</span>
+      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" stroke-width="2"/></svg>
+    </div>
+
+    <div id="link-pers-wrap" style="display:none;margin-top:10px">
+      <div style="font-size:12px;color:var(--text3);margin-bottom:8px">Link personalizado com CNPJ — <strong style="color:var(--verde)">envie este para os colaboradores:</strong></div>
+      <div class="link-box success" onclick="copiarTexto(document.getElementById('link-pers-val').textContent,'Link personalizado copiado!')">
+        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101" stroke-width="2"/></svg>
+        <span class="link-txt" id="link-pers-val"></span>
+        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" stroke-width="2"/></svg>
+      </div>
+    </div>
+
+    <div class="section-label" style="margin-top:20px">Como criar o link pré-preenchido no Google Forms</div>
+    <div class="info-box">
+      <strong>1.</strong> Abra o formulário DRPS no Google Drive<br>
+      <strong>2.</strong> Clique nos ⋮ três pontinhos (canto superior direito)<br>
+      <strong>3.</strong> Clique em "Obter link pré-preenchido"<br>
+      <strong>4.</strong> Preencha só o campo CNPJ com o CNPJ do cliente<br>
+      <strong>5.</strong> Clique em "Obter link" → copie → envie para os colaboradores
+    </div>
+
+    <div class="btn-group">
+      <button class="btn btn-primary" onclick="gerarEmailConvite()">Gerar e-mail de convite ↗</button>
+      <button class="btn btn-secondary" onclick="gerarLembreteForm()">Gerar lembrete ↗</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ RESPOSTAS ════════════════════ -->
+<div id="pane-respostas" class="pane">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon ci-blue"><svg width="20" height="20" fill="none" stroke="#1A3A5C" viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" stroke-width="2"/></svg></div>
+      <div><div class="card-title">Análise de respostas — 13 eixos NR-1</div><div class="card-desc">Médias automáticas com Matriz de Risco</div></div>
+    </div>
+
+    <div class="section-label">Cliente e setor</div>
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+      <div class="field" style="flex:1;min-width:200px">
+        <select id="sel-cli-resp" onchange="carregarSetoresResp()">
+          <option value="">— Selecione um cliente —</option>
+        </select>
+      </div>
+      <div class="field" style="flex:1;min-width:200px">
+        <select id="sel-setor-resp" onchange="renderEixos()">
+          <option value="">— Selecione um setor —</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="section-label">Inserir médias manualmente</div>
+    <div class="info-box" style="margin-bottom:12px">
+      Cole as médias da sua planilha Google Sheets abaixo, ou use os valores de demonstração para testar o sistema.
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <button class="btn btn-secondary btn-sm" onclick="usarDemo()">Carregar dados de demonstração</button>
+      <button class="btn btn-secondary btn-sm" onclick="limparEixos()">Limpar</button>
+    </div>
+
+    <div id="eixos-container"></div>
+
+    <div class="btn-group">
+      <button class="btn btn-primary" onclick="gerarNarrativa()">Gerar análise narrativa ↗</button>
+      <button class="btn btn-secondary" onclick="gerarComparativo()">Comparar setores ↗</button>
+      <button class="btn btn-secondary" onclick="nav('laudo',null)">Ir para o laudo →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ LAUDO ════════════════════════ -->
+<div id="pane-laudo" class="pane">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon ci-green"><svg width="20" height="20" fill="none" stroke="#1A5C3A" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" stroke-width="2"/></svg></div>
+      <div><div class="card-title">Gerar laudo DRPS — NR-1</div><div class="card-desc">Documento técnico com validade jurídica para o PGR</div></div>
+    </div>
+
+    <div class="section-label">Selecionar cliente</div>
+    <div class="field" style="max-width:360px;margin-bottom:16px">
+      <select id="sel-cli-laudo">
+        <option value="">— Selecione um cliente —</option>
+      </select>
+    </div>
+
+    <div class="section-label">Responsáveis técnicos</div>
+    <div class="form-grid">
+      <div class="field"><label>Responsável técnico 1</label><input id="l-rt1" value="Cinthia Kliman Benedito"></div>
+      <div class="field"><label>CPF</label><input id="l-cpf1" value="295.579.438-40"></div>
+      <div class="field"><label>Responsável técnico 2</label><input id="l-rt2" value="Vanessa Sampaio Sorrilha"></div>
+      <div class="field"><label>CPF</label><input id="l-cpf2" value="831.584.135-15"></div>
+    </div>
+
+    <div class="section-label" style="margin-top:4px">Estrutura do laudo gerado</div>
+    <div class="info-box">
+      <strong>Capa</strong> — empresa, CNPJ, data, responsáveis técnicos<br>
+      <strong>1. Introdução</strong> — contexto legal NR-1<br>
+      <strong>2. Objetivo</strong> — finalidade e integração ao PGR<br>
+      <strong>3. Metodologia</strong> — 13 eixos, escala Likert, Matriz NR-1<br>
+      <strong>4. Análises por setor</strong> — tabela de classificação + narrativa técnica<br>
+      <strong>5. Recomendações técnicas</strong> — ação, responsável e prazo<br>
+      <strong>6. Conclusão</strong> — síntese, conformidade NR-1, assinaturas
+    </div>
+
+    <div class="btn-group">
+      <button class="btn btn-success" onclick="gerarLaudoCompleto()"><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" stroke-width="2"/></svg>Gerar laudo completo ↗</button>
+      <button class="btn btn-secondary" onclick="gerarIntro()">Introdução e metodologia ↗</button>
+      <button class="btn btn-secondary" onclick="gerarRecs()">Tabela de recomendações ↗</button>
+      <button class="btn btn-secondary" onclick="gerarConc()">Conclusão ↗</button>
+      <button class="btn btn-secondary" onclick="gerarEmailEntrega()">E-mail de entrega ↗</button>
+    </div>
+
+    <div class="section-label" style="margin-top:16px">Como finalizar o laudo</div>
+    <div class="info-box">
+      <strong>1.</strong> Clique em "Gerar laudo completo" acima — o Claude gera o texto<br>
+      <strong>2.</strong> Copie o texto gerado e cole num Google Docs novo<br>
+      <strong>3.</strong> Insira os logos de Cinthia Kliman e VDL no cabeçalho<br>
+      <strong>4.</strong> Revise as probabilidades qualitativas na tabela por setor<br>
+      <strong>5.</strong> Exporte como PDF → assine digitalmente → envie ao cliente
+    </div>
+  </div>
+</div>
+
+</div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /app -->
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- MODAL NOVO CLIENTE RÁPIDO -->
+<div class="modal-overlay" id="modal-overlay" onclick="fecharModal(event)">
+  <div class="modal">
+    <div class="modal-title">Abrir cliente</div>
+    <div class="modal-sub" id="modal-sub">Selecione uma ação para este cliente</div>
+    <div id="modal-actions"></div>
+    <div class="modal-actions"><button class="btn btn-secondary btn-sm" onclick="fecharModal()">Fechar</button></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// DADOS E ESTADO
+// ═══════════════════════════════════════════════════
+const LINK_BASE = 'https://docs.google.com/forms/d/e/1FAIpQLSfYtu8wLTRUvxWGGsvqHll6QcMCrDM57Z0ltRjo9FygKJW7Tg/viewform';
+const ENTRY_CNPJ = 'entry.123456789';
+
+let clientes = JSON.parse(localStorage.getItem('drps_clientes') || '[]');
+let statusClientes = JSON.parse(localStorage.getItem('drps_status') || '{}');
+
+const ETAPAS = [
+  {id:'cadastro', label:'Cadastro', desc:'Dados da empresa'},
+  {id:'contrato', label:'Contrato gerado', desc:'Texto completo para assinatura'},
+  {id:'forms', label:'Link DRPS enviado', desc:'Formulário personalizado por CNPJ'},
+  {id:'coleta', label:'Respostas coletadas', desc:'Mínimo 70% por setor'},
+  {id:'analise', label:'Análise qualitativa', desc:'Probabilidade preenchida'},
+  {id:'laudo', label:'Laudo gerado', desc:'Documento técnico completo'},
+  {id:'entrega', label:'Entregue ao cliente', desc:'Reunião e PDF assinado'},
+];
+
+const EIXOS_NOMES = [
+  'Assédio no trabalho','Falta de suporte/apoio','Gestão de mudanças',
+  'Clareza de papel/função','Recompensas e reconhecimento','Autonomia e controle',
+  'Justiça organizacional','Eventos violentos/traumáticos','Subcarga de trabalho',
+  'Sobrecarga de trabalho','Relacionamentos no trabalho','Difícil comunicação','Trabalho remoto e isolado'
+];
+
+const EIXOS_DEMO = [0.8,1.9,2.4,1.2,2.7,1.5,2.1,0.5,0.9,2.8,2.2,1.8,1.0];
+let probValues = Array(13).fill('');
+let eixosValues = Array(13).fill('');
+
+// ═══════════════════════════════════════════════════
+// NAVEGAÇÃO
+// ═══════════════════════════════════════════════════
+const TITLES = {
+  dash:['Dashboard','Visão geral do pipeline de clientes'],
+  pipeline:['Pipeline','Kanban — todas as etapas do processo'],
+  cadastro:['Novo cliente','Cadastrar empresa contratante'],
+  clientes:['Clientes','Todos os clientes cadastrados'],
+  contrato:['Contrato','Gerar contrato de prestação de serviços'],
+  formulario:['Formulário DRPS','Link personalizado por CNPJ'],
+  respostas:['Análise de respostas','Médias dos 13 eixos NR-1'],
+  laudo:['Gerar laudo','Documento técnico DRPS completo'],
+};
+
+function nav(id, btn) {
+  document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+  document.getElementById('pane-'+id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  else {
+    document.querySelectorAll('.nav-item').forEach(b => {
+      if (b.getAttribute('onclick') && b.getAttribute('onclick').includes("'"+id+"'")) b.classList.add('active');
+    });
+  }
+  const [title, sub] = TITLES[id] || [id, ''];
+  document.getElementById('page-title').textContent = title;
+  document.getElementById('page-sub').textContent = sub;
+  if (id === 'pipeline') renderKanban();
+  if (id === 'clientes') renderClientes();
+  if (id === 'dash') renderDash();
+  if (id === 'respostas') { popularSelects(); renderEixos(); }
+  if (id === 'contrato' || id === 'formulario' || id === 'laudo') popularSelects();
+}
+
+// ═══════════════════════════════════════════════════
+// SALVAR / CARREGAR
+// ═══════════════════════════════════════════════════
+function salvar() {
+  localStorage.setItem('drps_clientes', JSON.stringify(clientes));
+  localStorage.setItem('drps_status', JSON.stringify(statusClientes));
+}
+
+function getStatus(cnpj) {
+  return statusClientes[cnpj] || { cadastro:false,contrato:false,forms:false,coleta:false,analise:false,laudo:false,entrega:false };
+}
+
+function setStatus(cnpj, etapa) {
+  if (!statusClientes[cnpj]) statusClientes[cnpj] = {};
+  statusClientes[cnpj][etapa] = true;
+  salvar();
+}
+
+// ═══════════════════════════════════════════════════
+// CALCULAR VALOR
+// ═══════════════════════════════════════════════════
+function calcValorAuto() {
+  const n = parseInt(document.getElementById('f-colab').value) || 0;
+  const t = n * (n > 500 ? 65 : 75);
+  document.getElementById('f-valor').value = t > 0 ? 'R$ ' + t.toLocaleString('pt-BR', {minimumFractionDigits:2}) : '';
+}
+
+function gerarLinkAuto() {
+  const cnpj = document.getElementById('f-cnpj').value.trim();
+  if (cnpj) {
+    const lp = LINK_BASE + '?usp=pp_url&' + ENTRY_CNPJ + '=' + encodeURIComponent(cnpj);
+    document.getElementById('link-pers-val').textContent = lp;
+    document.getElementById('link-pers-wrap').style.display = 'block';
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// SALVAR CLIENTE
+// ═══════════════════════════════════════════════════
+function salvarCliente() {
+  const nome = document.getElementById('f-nome').value.trim();
+  const cnpj = document.getElementById('f-cnpj').value.trim();
+  if (!nome || !cnpj) { toast('Preencha pelo menos o nome e CNPJ'); return; }
+
+  const cliente = {
+    nome, cnpj,
+    atividade: document.getElementById('f-ativ').value,
+    endereco: document.getElementById('f-end').value,
+    responsavel: document.getElementById('f-resp').value,
+    cargo: document.getElementById('f-cargo').value,
+    cpfResp: document.getElementById('f-cpf').value,
+    email: document.getElementById('f-email').value,
+    tel: document.getElementById('f-tel').value,
+    colaboradores: document.getElementById('f-colab').value,
+    nSetores: document.getElementById('f-nset').value,
+    setores: document.getElementById('f-setores').value,
+    valor: document.getElementById('f-valor').value,
+    pagamento: document.getElementById('f-pgto').value,
+    dataAssinatura: document.getElementById('f-data').value,
+    prazoLaudo: document.getElementById('f-prazo').value,
+    observacoes: document.getElementById('f-obs').value,
+    cadastradoEm: new Date().toLocaleDateString('pt-BR'),
+  };
+
+  const idx = clientes.findIndex(c => c.cnpj === cnpj);
+  if (idx >= 0) clientes[idx] = cliente; else clientes.push(cliente);
+  setStatus(cnpj, 'cadastro');
+  salvar();
+  renderTracker(cnpj, nome);
+  popularSelects();
+  toast('✓ Cliente salvo com sucesso!');
+  renderDash();
+}
+
+// ═══════════════════════════════════════════════════
+// RENDER TRACKER
+// ═══════════════════════════════════════════════════
+function renderTracker(cnpj, nome) {
+  document.getElementById('tracker-cliente').textContent = 'Cliente: ' + nome;
+  const st = getStatus(cnpj);
+  const html = ETAPAS.map((e, i) => {
+    const done = st[e.id];
+    const cls = done ? 'td-done' : (i === 0 ? 'td-active' : 'td-pend');
+    const icon = done ? '✓' : (i+1);
+    const badge = done
+      ? '<span class="badge b-ok">Concluído</span>'
+      : '<span class="badge b-neu">Pendente</span>';
+    return `<div class="track-item">
+      <div class="track-dot ${cls}">${icon}</div>
+      <div class="track-content"><div class="track-title">${e.label}</div><div class="track-desc">${e.desc}</div></div>
+      <div class="track-status">${badge}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('tracker').innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════════
+function renderDash() {
+  document.getElementById('m-ativos').textContent = clientes.length;
+  const emColeta = clientes.filter(c => {
+    const s = getStatus(c.cnpj);
+    return s.forms && !s.laudo;
+  }).length;
+  const laudos = clientes.filter(c => getStatus(c.cnpj).laudo).length;
+  const receita = clientes.reduce((sum, c) => {
+    const n = parseInt(c.colaboradores) || 0;
+    return sum + n * (n > 500 ? 65 : 75);
+  }, 0);
+  document.getElementById('m-coleta').textContent = emColeta;
+  document.getElementById('m-laudos').textContent = laudos;
+  document.getElementById('m-receita').textContent = receita > 0 ? 'R$' + (receita/1000).toFixed(0) + 'k' : 'R$0';
+
+  // Alertas
+  const alertas = [];
+  clientes.forEach(c => {
+    const s = getStatus(c.cnpj);
+    if (s.forms && !s.coleta) alertas.push({tipo:'al-w', msg:`<strong>${c.nome}</strong> — coleta em andamento. Verifique a taxa de resposta.`});
+    if (s.coleta && !s.analise) alertas.push({tipo:'al-i', msg:`<strong>${c.nome}</strong> — probabilidade qualitativa pendente. Preencha para gerar o laudo.`});
+    if (s.laudo && !s.entrega) alertas.push({tipo:'al-ok', msg:`<strong>${c.nome}</strong> — laudo gerado. Agendar entrega ao cliente.`});
+  });
+  const aBox = document.getElementById('alertas-dash');
+  if (alertas.length === 0) {
+    aBox.innerHTML = '<div class="alert al-i"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2"/></svg><div class="alert-content">' + (clientes.length === 0 ? 'Nenhum alerta. Cadastre clientes para começar.' : 'Tudo em dia! Nenhum alerta pendente.') + '</div></div>';
+  } else {
+    aBox.innerHTML = alertas.slice(0,4).map(a => `<div class="alert ${a.tipo}"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><circle cx="12" cy="12" r="10" stroke-width="2"/><path d="M12 8v4m0 4h.01" stroke-width="2"/></svg><div class="alert-content">${a.msg}</div></div>`).join('');
+  }
+
+  // Recentes
+  const rec = document.getElementById('recentes-dash');
+  if (clientes.length === 0) {
+    rec.innerHTML = '<div class="client-item" style="justify-content:center;color:var(--text3);font-size:13px;cursor:default">Nenhum cliente cadastrado</div>';
+  } else {
+    const cols = ['av-blue','av-green','av-amber','av-red','av-purple'];
+    rec.innerHTML = clientes.slice(-4).reverse().map((c, i) => {
+      const s = getStatus(c.cnpj);
+      const etapa = ETAPAS.slice().reverse().find(e => s[e.id]);
+      const badge = etapa ? `<span class="badge b-info">${etapa.label}</span>` : '<span class="badge b-neu">Cadastrado</span>';
+      const initials = c.nome.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+      return `<div class="client-item" onclick="abrirModal('${c.cnpj}')">
+        <div class="avatar ${cols[i%5]}">${initials}</div>
+        <div class="client-info"><div class="client-name">${c.nome}</div><div class="client-meta">${c.colaboradores||'?'} colaboradores · CNPJ: ${c.cnpj}</div></div>
+        ${badge}
+      </div>`;
+    }).join('');
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// KANBAN
+// ═══════════════════════════════════════════════════
+function renderKanban() {
+  const board = document.getElementById('kanban-board');
+  const colunas = [
+    {id:'cadastro', label:'Cadastro'},
+    {id:'contrato', label:'Contrato'},
+    {id:'forms', label:'Coleta'},
+    {id:'coleta', label:'Análise'},
+    {id:'analise', label:'Laudo'},
+    {id:'laudo', label:'Entrega'},
+    {id:'entrega', label:'Concluído'},
+  ];
+  board.innerHTML = colunas.map(col => {
+    const items = clientes.filter(c => {
+      const s = getStatus(c.cnpj);
+      if (col.id === 'entrega') return s.entrega;
+      if (col.id === 'laudo') return s.laudo && !s.entrega;
+      if (col.id === 'analise') return s.analise && !s.laudo;
+      if (col.id === 'coleta') return s.coleta && !s.analise;
+      if (col.id === 'forms') return s.forms && !s.coleta;
+      if (col.id === 'contrato') return s.contrato && !s.forms;
+      return s.cadastro && !s.contrato;
+    });
+    const cards = items.map(c => `<div class="k-card" onclick="abrirModal('${c.cnpj}')">
+      <div class="k-name">${c.nome}</div>
+      <div class="k-info">${c.colaboradores||'?'} colab · ${c.cadastradoEm||''}</div>
+    </div>`).join('') || '<div style="font-size:11px;color:var(--text3);padding:8px;text-align:center">—</div>';
+    return `<div class="k-col">
+      <div class="k-header">${col.label} <span class="badge b-neu" style="font-size:10px">${items.length}</span></div>
+      ${cards}
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════
+// LISTA CLIENTES
+// ═══════════════════════════════════════════════════
+function renderClientes(filtro='') {
+  const lista = document.getElementById('lista-clientes');
+  const cols = ['av-blue','av-green','av-amber','av-red','av-purple'];
+  const filtered = clientes.filter(c =>
+    c.nome.toLowerCase().includes(filtro.toLowerCase()) ||
+    c.cnpj.includes(filtro)
+  );
+  if (filtered.length === 0) {
+    lista.innerHTML = '<div class="client-item" style="justify-content:center;color:var(--text3);font-size:13px;cursor:default">' + (filtro ? 'Nenhum resultado' : 'Nenhum cliente cadastrado') + '</div>';
+    return;
+  }
+  lista.innerHTML = filtered.map((c, i) => {
+    const s = getStatus(c.cnpj);
+    const pct = Math.round((Object.values(s).filter(Boolean).length / ETAPAS.length) * 100);
+    const initials = c.nome.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+    const pc = pct >= 80 ? 'pf-green' : pct >= 40 ? 'pf-amber' : 'pf-red';
+    return `<div class="client-item" onclick="abrirModal('${c.cnpj}')">
+      <div class="avatar ${cols[i%5]}">${initials}</div>
+      <div class="client-info">
+        <div class="client-name">${c.nome}</div>
+        <div class="client-meta">${c.cnpj} · ${c.colaboradores||'?'} colaboradores · ${(c.setores||'').split('\n').filter(s=>s.trim()).length} setores</div>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-bar"><div class="progress-fill ${pc}" style="width:${pct}%"></div></div>
+        <span class="progress-txt">${pct}%</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filtrarClientes(v) { renderClientes(v); }
+
+// ═══════════════════════════════════════════════════
+// POPULAR SELECTS
+// ═══════════════════════════════════════════════════
+function popularSelects() {
+  const opts = clientes.map(c => `<option value="${c.cnpj}">${c.nome}</option>`).join('');
+  const base = '<option value="">— Selecione um cliente —</option>';
+  ['sel-cliente-cont','sel-cliente-form','sel-cli-resp','sel-cli-laudo'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = base + opts;
+  });
+}
+
+function carregarSetoresResp() {
+  const cnpj = document.getElementById('sel-cli-resp').value;
+  const sel = document.getElementById('sel-setor-resp');
+  if (!cnpj) { sel.innerHTML = '<option value="">— Selecione um setor —</option>'; return; }
+  const c = clientes.find(c => c.cnpj === cnpj);
+  if (!c) return;
+  const sets = (c.setores || '').split('\n').filter(s => s.trim());
+  sel.innerHTML = '<option value="">— Selecione um setor —</option>' + sets.map(s => `<option>${s.trim()}</option>`).join('');
+}
+
+// ═══════════════════════════════════════════════════
+// EIXOS / ANÁLISE
+// ═══════════════════════════════════════════════════
+function clG(v) {
+  if (v <= 1.33) return {g:'Baixa',c:'gv-l',f:'ef-low'};
+  if (v <= 2.66) return {g:'Média',c:'gv-m',f:'ef-med'};
+  return {g:'Alta',c:'gv-h',f:'ef-hi'};
+}
+
+function matR(g, p) {
+  if (!p) return {l:'—',c:'b-neu'};
+  const m = {
+    Baixa:{Baixa:'Baixo',Média:'Baixo',Alta:'Médio'},
+    Média:{Baixa:'Baixo',Média:'Médio',Alta:'Alto'},
+    Alta:{Baixa:'Médio',Média:'Alto',Alta:'Crítico'}
+  };
+  const r = m[g]?.[p] || '—';
+  return {l:r, c:{Baixo:'b-ok',Médio:'b-warn',Alto:'b-err',Crítico:'b-err'}[r]||'b-neu'};
+}
+
+function renderEixos() {
+  const box = document.getElementById('eixos-container');
+  if (!box) return;
+  box.innerHTML = EIXOS_NOMES.map((nome, i) => {
+    const v = parseFloat(eixosValues[i]) || 0;
+    const hasV = eixosValues[i] !== '';
+    const {g,c,f} = clG(v);
+    const p = probValues[i];
+    const mr = matR(g, p);
+    const pct = Math.round(v / 4 * 100);
+    return `<div class="eixo-row">
+      <span class="eixo-num">E${i+1}</span>
+      <span class="eixo-name">${nome}</span>
+      <input type="number" min="0" max="4" step="0.01" value="${eixosValues[i]}" placeholder="0.00"
+        style="width:64px;font-size:12px;padding:4px 7px;border:1px solid var(--border);border-radius:4px;font-family:var(--mono);background:var(--surface)"
+        onchange="setEixo(${i},this.value)" oninput="setEixo(${i},this.value)">
+      <div class="eixo-bar"><div class="eixo-fill ${hasV ? f : ''}" style="width:${hasV ? pct : 0}%"></div></div>
+      <span class="eixo-val">${hasV ? v.toFixed(2) : '—'}</span>
+      <span class="eixo-grav ${hasV ? c : ''}">${hasV ? g : '—'}</span>
+      <div class="eixo-prob">
+        <select onchange="setProb(${i},this.value)">
+          <option value="">Prob…</option>
+          <option ${p==='Baixa'?'selected':''}>Baixa</option>
+          <option ${p==='Média'?'selected':''}>Média</option>
+          <option ${p==='Alta'?'selected':''}>Alta</option>
+        </select>
+      </div>
+      <span class="eixo-risco badge ${hasV && p ? mr.c : 'b-neu'}">${hasV && p ? mr.l : '—'}</span>
+    </div>`;
+  }).join('');
+}
+
+function setEixo(i, v) { eixosValues[i] = v; renderEixos(); }
+function setProb(i, v) { probValues[i] = v; renderEixos(); }
+
+function usarDemo() {
+  eixosValues = [...EIXOS_DEMO];
+  probValues = ['Baixa','Média','Média','Baixa','Média','Baixa','Média','Baixa','Baixa','Alta','Média','Média','Baixa'];
+  renderEixos();
+  toast('Dados de demonstração carregados');
+}
+
+function limparEixos() {
+  eixosValues = Array(13).fill('');
+  probValues = Array(13).fill('');
+  renderEixos();
+}
+
+// ═══════════════════════════════════════════════════
+// CONTRATO
+// ═══════════════════════════════════════════════════
+function preencherContrato() {
+  const cnpj = document.getElementById('sel-cliente-cont').value;
+  const c = clientes.find(cl => cl.cnpj === cnpj);
+  const prev = document.getElementById('cont-preview');
+  const dados = document.getElementById('cont-dados');
+  if (!c) { prev.style.display = 'none'; return; }
+  prev.style.display = 'block';
+  const sets = (c.setores||'').split('\n').filter(s=>s.trim()).map((s,i)=>`${i+1}. ${s.trim()}`).join(' | ');
+  dados.innerHTML = `
+    <strong>CONTRATANTE:</strong> ${c.nome} · CNPJ: ${c.cnpj}<br>
+    <strong>Representante:</strong> ${c.responsavel||'—'} · CPF: ${c.cpfResp||'—'}<br>
+    <strong>E-mail:</strong> ${c.email||'—'} · Tel: ${c.tel||'—'}<br>
+    <strong>CONTRATADO:</strong> VDL Gestão & Estratégia · CNPJ: 65.425.722/0001-33<br>
+    <strong>Valor:</strong> ${c.valor||'—'} · Pagamento: ${c.pagamento||'—'}<br>
+    <strong>Prazo laudo:</strong> ${c.prazoLaudo||'—'} · Data: ${c.dataAssinatura||'—'}<br>
+    <strong>Setores:</strong> ${sets||'—'}
+  `;
+}
+
+function getDadosCliente(selectId) {
+  const cnpj = document.getElementById(selectId).value;
+  return clientes.find(c => c.cnpj === cnpj) || null;
+}
+
+function gerarContrato() {
+  const c = getDadosCliente('sel-cliente-cont');
+  if (!c) { toast('Selecione um cliente primeiro'); return; }
+  const sets = (c.setores||'').split('\n').filter(s=>s.trim());
+  setStatus(c.cnpj, 'contrato');
+  renderDash();
+  const load = document.getElementById('cont-load');
+  load.style.display = 'flex';
+  setTimeout(() => load.style.display = 'none', 2000);
+  const prompt = `Gere o CONTRATO COMPLETO de Prestação de Serviços DRPS seguindo exatamente o modelo do Pirilampos com TODAS as 8 cláusulas e o Anexo I. Use os dados:
+
+CONTRATANTE: ${c.nome} | CNPJ: ${c.cnpj} | Endereço: ${c.endereco||'não informado'}
+Representante: ${c.responsavel||'—'} | CPF: ${c.cpfResp||'—'} | E-mail: ${c.email||'—'} | Tel: ${c.tel||'—'}
+
+CONTRATADO: VDL Gestão & Estratégia | CNPJ: 65.425.722/0001-33
+Vanessa Sampaio Sorrilha | CPF: 831.584.135-15
+
+OBJETO: Diagnóstico de Riscos Psicossociais (DRPS) + Laudo Técnico por setor para PGR — NR-1
+COLABORADORES: ${c.colaboradores||'?'} | SETORES: ${sets.join(', ')}
+VALOR: ${c.valor||'a combinar'} | PAGAMENTO: ${c.pagamento||'—'}
+PRAZO DO LAUDO: ${c.prazoLaudo||'—'} | DATA: ${c.dataAssinatura||new Date().toLocaleDateString('pt-BR')}
+FORO: Guarulhos/SP
+
+Gere o contrato completo formatado, com todas as cláusulas do modelo Pirilampos adaptadas para este cliente, e o Anexo I com as etapas do trabalho (etapas 1 a 5) personalizadas com os setores listados.`;
+  window.open('https://claude.ai/chat?q=' + encodeURIComponent(prompt).substring(0,2000), '_blank');
+  toast('Abrindo Claude para gerar o contrato...');
+}
+
+function gerarAnexo() {
+  const c = getDadosCliente('sel-cliente-cont');
+  if (!c) { toast('Selecione um cliente primeiro'); return; }
+  const sets = (c.setores||'').split('\n').filter(s=>s.trim());
+  const prompt = `Gere o Anexo I — Etapas do Trabalho — para o contrato DRPS da empresa ${c.nome}. Setores: ${sets.join(', ')}. Inclua as 5 etapas: 1) envio de formulário de setores, 2) preenchimento do inventário (5 dias úteis), 3) reunião com gestores de setores em atenção para validação, 4) elaboração do laudo técnico (7 dias), 5) entrega do laudo assinado e apresentação.`;
+  navigator.clipboard.writeText(prompt).then(() => toast('Prompt copiado! Cole no Claude.ai')).catch(() => toast('Copie o texto da caixa'));
+}
+
+function gerarClauPgto() {
+  const c = getDadosCliente('sel-cliente-cont');
+  if (!c) { toast('Selecione um cliente primeiro'); return; }
+  const prompt = `Gere a Cláusula 3ª (Investimento e Pagamento) do contrato DRPS para: ${c.nome}, valor: ${c.valor||'a combinar'}, forma: ${c.pagamento||'—'}. Inclua encargos por inadimplência (multa 2%, juros 1% ao mês, IPCA) e multa rescisória de 20%.`;
+  navigator.clipboard.writeText(prompt).then(() => toast('Prompt copiado!')).catch(() => {});
+}
+
+// ═══════════════════════════════════════════════════
+// FORMULÁRIO
+// ═══════════════════════════════════════════════════
+function gerarLinkCliente() {
+  const cnpj = document.getElementById('sel-cliente-form').value;
+  if (!cnpj) { document.getElementById('link-pers-wrap').style.display = 'none'; return; }
+  const lp = LINK_BASE + '?usp=pp_url&' + ENTRY_CNPJ + '=' + encodeURIComponent(cnpj);
+  document.getElementById('link-pers-val').textContent = lp;
+  document.getElementById('link-pers-wrap').style.display = 'block';
+  const c = clientes.find(cl => cl.cnpj === cnpj);
+  if (c) { setStatus(cnpj, 'forms'); renderDash(); }
+}
+
+function gerarEmailConvite() {
+  const cnpj = document.getElementById('sel-cliente-form').value;
+  const c = clientes.find(cl => cl.cnpj === cnpj);
+  const nome = c ? c.nome : '[nome da empresa]';
+  const link = cnpj ? LINK_BASE + '?usp=pp_url&' + ENTRY_CNPJ + '=' + encodeURIComponent(cnpj) : LINK_BASE;
+  const prompt = `Gere um e-mail de convite para os colaboradores da empresa "${nome}" responderem o questionário DRPS NR-1. Deve: (1) explicar que é totalmente anônimo e confidencial, (2) dizer que leva 10-15 minutos, (3) informar prazo de 5 dias úteis, (4) esclarecer que o objetivo é melhorar o ambiente de trabalho, não avaliar pessoas, (5) incluir o link: ${link}. Tom acolhedor. Assinar como: Direção / RH em parceria com Cinthia Kliman & VDL Gestão e Estratégia.`;
+  navigator.clipboard.writeText(prompt).then(() => toast('Prompt copiado! Cole no Claude.ai')).catch(() => {});
+}
+
+function gerarLembreteForm() {
+  const cnpj = document.getElementById('sel-cliente-form').value;
+  const c = clientes.find(cl => cl.cnpj === cnpj);
+  const nome = c ? c.nome : '[empresa]';
+  const prompt = `Gere um e-mail de lembrete gentil para colaboradores de "${nome}" que ainda não responderam o questionário DRPS. Prazo: 2 dias. Tom amigável, máximo 6 linhas. Link: ${LINK_BASE}`;
+  navigator.clipboard.writeText(prompt).then(() => toast('Prompt copiado!')).catch(() => {});
+}
+
+// ═══════════════════════════════════════════════════
+// LAUDO
+// ═══════════════════════════════════════════════════
+function gerarLaudoCompleto() {
+  const cnpj = document.getElementById('sel-cli-laudo').value;
+  const c = clientes.find(cl => cl.cnpj === cnpj) || {nome:'[empresa]',cnpj:'[cnpj]',setores:''};
+  const rt1 = document.getElementById('l-rt1').value;
+  const cpf1 = document.getElementById('l-cpf1').value;
+  const rt2 = document.getElementById('l-rt2').value;
+  const cpf2 = document.getElementById('l-cpf2').value;
+  const sets = (c.setores||'').split('\n').filter(s=>s.trim()).join(', ') || 'setores não informados';
+  const scores = EIXOS_NOMES.map((n,i) => `${n}: ${eixosValues[i]||'?'} (prob: ${probValues[i]||'não definida'})`).join('\n');
+  if (cnpj) { setStatus(cnpj, 'laudo'); renderDash(); }
+  const prompt = `Gere o LAUDO DRPS COMPLETO seguindo exatamente a estrutura do laudo modelo CNSD Colégio com todas as seções.
+
+EMPRESA: ${c.nome} | CNPJ: ${c.cnpj}
+RESPONSÁVEIS: ${rt1} (CPF: ${cpf1}) e ${rt2} (CPF: ${cpf2})
+SETORES: ${sets}
+COLABORADORES: ${c.colaboradores||'?'}
+DATA: ${new Date().toLocaleDateString('pt-BR')}
+
+SCORES DOS 13 EIXOS (médias corrigidas):
+${scores}
+
+Gere TODAS as seções: Capa, 1. Introdução, 2. Objetivo, 3. Metodologia (com tabela da Matriz NR-1), 4. Análises e Resultados por setor (tabela dos 13 eixos + narrativa técnica por setor), 5. Medidas de Prevenção + Tabela de Recomendações (ação, responsável, prazo, acompanhamento), 6. Conclusão + assinaturas. Formato completo pronto para colar no Google Docs.`;
+  window.open('https://claude.ai/chat?q=' + encodeURIComponent(prompt).substring(0,2000), '_blank');
+  toast('Abrindo Claude para gerar o laudo...');
+}
+
+function gerarIntro() {
+  const c = getDadosCliente('sel-cli-laudo');
+  const nome = c ? c.nome : '[empresa]';
+  const prompt = `Gere as seções Introdução, Objetivo e Metodologia do laudo DRPS para a empresa "${nome}", seguindo o padrão técnico NR-1. Inclua na metodologia a tabela da Matriz de Risco NR-1 (Gravidade × Probabilidade = Baixo/Médio/Alto/Crítico), a descrição dos 13 eixos FRPRT do MTE e a escala Likert 0-4.`;
+  navigator.clipboard.writeText(prompt).then(() => toast('Prompt copiado!')).catch(() => {});
+}
+
+function gerarRecs() {
+  const altos = EIXOS_NOMES.map((n,i) => ({n, v:parseFloat(eixosValues[i])||0, p:probValues[i]})).filter(e => e.v > 1.33).map(e => `${e.n}: média ${e.v.toFixed(2)}, prob ${e.p||'?'}`).join('\n');
+  const prompt = `Gere a Tabela de Recomendações Técnicas do laudo DRPS. Para cada fator com risco Médio ou Alto abaixo, inclua: Fator de Risco | Setor | Classificação | Descrição do Problema | Medida de Ação Recomendada | Prioridade | Responsável | Prazo | Acompanhamento.\n\n${altos||'Sem dados — use dados de demonstração'}`;
+  navigator.clipboard.writeText(prompt).then(() => toast('Prompt copiado!')).catch(() => {});
+}
+
+function gerarConc() {
+  const c = getDadosCliente('sel-cli-laudo');
+  const nome = c ? c.nome : '[empresa]';
+  const prompt = `Gere a Conclusão completa do laudo DRPS para a empresa "${nome}", incluindo: síntese integrada por setor, riscos prioritários, comprometimento com reavaliação em 24 meses, declaração de conformidade com NR-1 (Portaria MTE 1.419/2024), nota que o laudo deve ser mantido por mínimo 20 anos. Campos de assinatura para Cinthia Kliman Benedito e Vanessa Sampaio Sorrilha.`;
+  navigator.clipboard.writeText(prompt).then(() => toast('Prompt copiado!')).catch(() => {});
+}
+
+function gerarEmailEntrega() {
+  const c = getDadosCliente('sel-cli-laudo');
+  const nome = c ? c.nome : '[empresa]';
+  const prompt = `Gere o e-mail de entrega do laudo DRPS para o cliente "${nome}". Inclua: confirmação da entrega, resumo dos 2-3 principais achados, próximos passos (integrar ao PGR, agendamento de reunião de apresentação, plano de ação) e proposta de continuidade (Etapa 2 — treinamentos e programas contínuos). Tom profissional e estratégico. Assinar como Cinthia Kliman & VDL Gestão e Estratégia.`;
+  navigator.clipboard.writeText(prompt).then(() => toast('Prompt copiado!')).catch(() => {});
+}
+
+// ═══════════════════════════════════════════════════
+// GERAR IA (OUTROS)
+// ═══════════════════════════════════════════════════
+function gerarProposta() {
+  const nome = document.getElementById('f-nome').value || '[empresa]';
+  const colab = document.getElementById('f-colab').value || '?';
+  const valor = document.getElementById('f-valor').value || 'a calcular';
+  const sets = (document.getElementById('f-setores').value||'').split('\n').filter(s=>s.trim());
+  const prompt = `Gere uma proposta comercial completa para: ${nome}, ${colab} colaboradores, ${sets.length} setores (${sets.join(', ')}). Valor: ${valor}. Inclua escopo do Projeto Essencial (diagnóstico + laudo NR-1), cronograma de 20-30 dias, forma de pagamento, diferenciais. Assinar como Cinthia Kliman & VDL Gestão e Estratégia.`;
+  navigator.clipboard.writeText(prompt).then(() => toast('Prompt copiado! Cole no Claude.ai')).catch(() => {});
+}
+
+function gerarEmailBV() {
+  const nome = document.getElementById('f-nome').value || '[empresa]';
+  const prompt = `Gere um e-mail de boas-vindas para o cliente "${nome}" confirmando o início do processo DRPS NR-1. Explique as 7 etapas do processo de forma simples e solicite a assinatura do contrato. Assinar como Cinthia Kliman & VDL Gestão e Estratégia.`;
+  navigator.clipboard.writeText(prompt).then(() => toast('Prompt copiado!')).catch(() => {});
+}
+
+function gerarNarrativa() {
+  const cnpj = document.getElementById('sel-cli-resp').value;
+  const setor = document.getElementById('sel-setor-resp').value || 'setor avaliado';
+  const c = clientes.find(cl => cl.cnpj === cnpj);
+  const scores = EIXOS_NOMES.map((n,i) => `${n}: ${eixosValues[i]||'?'} (prob: ${probValues[i]||'não definida'})`).join('\n');
+  const prompt = `Gere a análise narrativa técnica completa para o setor "${setor}" da empresa "${c ? c.nome : '[empresa]'}" no diagnóstico DRPS NR-1.\n\nScores:\n${scores}\n\nA narrativa deve: (1) descrever o cenário geral, (2) destacar fatores de risco alto com análise das fontes geradoras, (3) analisar os riscos médios, (4) mencionar os eixos baixos, (5) concluir com recomendações para o PGR. Tom técnico conforme NR-1.`;
+  navigator.clipboard.writeText(prompt).then(() => toast('Prompt copiado!')).catch(() => {});
+}
+
+function gerarComparativo() {
+  const cnpj = document.getElementById('sel-cli-resp').value;
+  const c = clientes.find(cl => cl.cnpj === cnpj);
+  const scores = EIXOS_NOMES.map((n,i) => `${n}: ${eixosValues[i]||'?'}`).join('\n');
+  const prompt = `Gere um comparativo técnico entre os setores da empresa "${c ? c.nome : '[empresa]'}" no diagnóstico DRPS.\n\nScores:\n${scores}\n\nDestaques: quais setores têm mais riscos? Quais eixos são transversais? Quais precisam de ação imediata?`;
+  navigator.clipboard.writeText(prompt).then(() => toast('Prompt copiado!')).catch(() => {});
+}
+
+// ═══════════════════════════════════════════════════
+// MODAL
+// ═══════════════════════════════════════════════════
+function abrirModal(cnpj) {
+  const c = clientes.find(cl => cl.cnpj === cnpj);
+  if (!c) return;
+  document.getElementById('modal-sub').textContent = c.nome + ' — ' + cnpj;
+  document.getElementById('modal-actions').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
+      <button class="btn btn-secondary" onclick="fecharModal();nav('contrato',null);document.getElementById('sel-cliente-cont').value='${cnpj}';preencherContrato()">Ver / gerar contrato</button>
+      <button class="btn btn-secondary" onclick="fecharModal();nav('formulario',null);document.getElementById('sel-cliente-form').value='${cnpj}';gerarLinkCliente()">Link DRPS personalizado</button>
+      <button class="btn btn-secondary" onclick="fecharModal();nav('respostas',null);document.getElementById('sel-cli-resp').value='${cnpj}';carregarSetoresResp()">Analisar respostas</button>
+      <button class="btn btn-secondary" onclick="fecharModal();nav('laudo',null);document.getElementById('sel-cli-laudo').value='${cnpj}'">Gerar laudo</button>
+      <button class="btn btn-secondary" onclick="marcarEtapa('${cnpj}')">Atualizar status</button>
+    </div>`;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function fecharModal(e) {
+  if (e && e.target !== document.getElementById('modal-overlay')) return;
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+
+function marcarEtapa(cnpj) {
+  const etapa = prompt('Digite a etapa concluída:\ncadastro, contrato, forms, coleta, analise, laudo, entrega');
+  if (etapa && ETAPAS.find(e => e.id === etapa)) {
+    setStatus(cnpj, etapa);
+    renderDash();
+    toast('Etapa "' + etapa + '" marcada como concluída');
+  }
+  fecharModal();
+}
+
+// ═══════════════════════════════════════════════════
+// UTILITÁRIOS
+// ═══════════════════════════════════════════════════
+function copiarTexto(txt, msg) {
+  navigator.clipboard.writeText(txt).then(() => toast(msg || 'Copiado!')).catch(() => toast('Erro ao copiar'));
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+function clock() {
+  const now = new Date();
+  document.getElementById('clock').textContent = now.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'}) + ' · ' + now.toLocaleDateString('pt-BR');
+}
+
+// ═══════════════════════════════════════════════════
+// INICIALIZAÇÃO
+// ═══════════════════════════════════════════════════
+renderDash();
+renderEixos();
+setInterval(clock, 1000);
+clock();
+</script>
+</body>
+</html>
