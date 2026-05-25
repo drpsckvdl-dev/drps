@@ -65,6 +65,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .ci-blue{background:var(--azul-light)}
 .ci-green{background:var(--verde-light)}
 .ci-amber{background:var(--amber-light)}
+.ci-amber{background:var(--amber-light)}
 .card-title{font-size:14px;font-weight:600;color:var(--text)}
 .card-desc{font-size:12px;color:var(--text3);margin-top:1px}
 
@@ -281,6 +282,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <button class="nav-item" onclick="nav('laudo',this)" title="Laudo">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" stroke-width="2"/></svg>
       <span>Gerar Laudo</span>
+    </button>
+    <button class="nav-item" onclick="nav('financeiro',this)" title="Financeiro">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2"/></svg>
+      <span>Financeiro</span>
+      <span class="nav-badge nb-warn" id="nb-fin">0</span>
     </button>
   </div>
   <div class="sb-footer">
@@ -593,6 +599,105 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   </div>
 </div>
 
+
+<!-- ═══════════════════ FINANCEIRO ═══════════════════ -->
+<div id="pane-financeiro" class="pane">
+
+  <!-- MÉTRICAS -->
+  <div class="metrics-grid" id="fin-metrics">
+    <div class="metric"><div class="metric-lbl">Receita total</div><div class="metric-val mv-blue" id="fin-total">R$0</div><div class="metric-sub">todos os clientes</div></div>
+    <div class="metric"><div class="metric-lbl">Recebido</div><div class="metric-val mv-green" id="fin-recebido">R$0</div><div class="metric-sub">pagamentos confirmados</div></div>
+    <div class="metric"><div class="metric-lbl">Pendente</div><div class="metric-val mv-amber" id="fin-pendente">R$0</div><div class="metric-sub">aguardando pagamento</div></div>
+    <div class="metric"><div class="metric-lbl">Atrasado</div><div class="metric-val mv-red" id="fin-atrasado">R$0</div><div class="metric-sub">vencido sem pagamento</div></div>
+  </div>
+
+  <!-- REGISTRAR PAGAMENTO -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon ci-green"><svg width="20" height="20" fill="none" stroke="#1A5C3A" viewBox="0 0 24 24"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2"/></svg></div>
+      <div><div class="card-title">Registrar pagamento</div><div class="card-desc">Marque entradas recebidas por cliente</div></div>
+    </div>
+    <div class="form-grid">
+      <div class="field"><label>Cliente</label>
+        <select id="fin-cli" onchange="preencherFinCliente()">
+          <option value="">— Selecione —</option>
+        </select>
+      </div>
+      <div class="field"><label>Valor total do contrato</label>
+        <input id="fin-valor-total" type="text" readonly placeholder="Calculado automaticamente">
+      </div>
+      <div class="field"><label>Parcela</label>
+        <select id="fin-parcela">
+          <option>1ª parcela (entrada)</option>
+          <option>2ª parcela (entrega)</option>
+          <option>Parcela única</option>
+          <option>Outra</option>
+        </select>
+      </div>
+      <div class="field"><label>Valor recebido (R$)</label>
+        <input id="fin-valor-rec" type="number" placeholder="Ex: 975.00" step="0.01">
+      </div>
+      <div class="field"><label>Data do recebimento</label>
+        <input id="fin-data-rec" type="date">
+      </div>
+      <div class="field"><label>Forma de recebimento</label>
+        <select id="fin-forma">
+          <option>PIX</option>
+          <option>Transferência bancária</option>
+          <option>Boleto</option>
+          <option>Cartão</option>
+          <option>Dinheiro</option>
+        </select>
+      </div>
+      <div class="field"><label>Status</label>
+        <select id="fin-status">
+          <option value="recebido">Recebido ✅</option>
+          <option value="pendente">Pendente ⏳</option>
+          <option value="atrasado">Atrasado ⚠️</option>
+        </select>
+      </div>
+      <div class="field"><label>Observação</label>
+        <input id="fin-obs" type="text" placeholder="Ex: aguardando compensação...">
+      </div>
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-success" onclick="registrarPagamento()">
+        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-width="2.5"/></svg>
+        Registrar pagamento
+      </button>
+      <button class="btn btn-secondary" onclick="gerarCobranca()">Gerar mensagem de cobrança ↗</button>
+      <button class="btn btn-secondary" onclick="gerarRecibo()">Gerar recibo ↗</button>
+    </div>
+  </div>
+
+  <!-- EXTRATO DE PAGAMENTOS -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon ci-blue"><svg width="20" height="20" fill="none" stroke="#1A3A5C" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke-width="2"/></svg></div>
+      <div><div class="card-title">Extrato de pagamentos</div><div class="card-desc">Histórico completo por cliente</div></div>
+      <select style="margin-left:auto;font-size:12px;padding:5px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface)" id="fin-filtro" onchange="renderExtrato()">
+        <option value="todos">Todos os clientes</option>
+        <option value="recebido">Recebidos</option>
+        <option value="pendente">Pendentes</option>
+        <option value="atrasado">Atrasados</option>
+      </select>
+    </div>
+    <div id="extrato-container">
+      <div style="text-align:center;color:var(--text3);font-size:13px;padding:20px">Nenhum pagamento registrado ainda</div>
+    </div>
+  </div>
+
+  <!-- RESUMO POR CLIENTE -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon ci-amber"><svg width="20" height="20" fill="none" stroke="#7A4A00" viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" stroke-width="2"/></svg></div>
+      <div><div class="card-title">Resumo financeiro por cliente</div><div class="card-desc">Valor contratado vs recebido</div></div>
+    </div>
+    <div id="resumo-clientes"></div>
+  </div>
+
+</div>
+
 </div><!-- /content -->
 </div><!-- /main -->
 </div><!-- /app -->
@@ -653,6 +758,7 @@ const TITLES = {
   formulario:['Formulário DRPS','Link personalizado por CNPJ'],
   respostas:['Análise de respostas','Médias dos 13 eixos NR-1'],
   laudo:['Gerar laudo','Documento técnico DRPS completo'],
+  financeiro:['Financeiro','Receita, pagamentos e inadimplência'],
 };
 
 function nav(id, btn) {
@@ -672,6 +778,7 @@ function nav(id, btn) {
   if (id === 'clientes') renderClientes();
   if (id === 'dash') renderDash();
   if (id === 'respostas') { popularSelects(); renderEixos(); }
+  if (id === 'financeiro') renderFinanceiro();
   if (id === 'contrato' || id === 'formulario' || id === 'laudo') popularSelects();
 }
 
@@ -1229,10 +1336,177 @@ function clock() {
 }
 
 // ═══════════════════════════════════════════════════
+// FINANCEIRO
+// ═══════════════════════════════════════════════════
+let pagamentos = JSON.parse(localStorage.getItem('drps_pagamentos') || '[]');
+
+function salvarPagamentos() {
+  localStorage.setItem('drps_pagamentos', JSON.stringify(pagamentos));
+}
+
+function preencherFinCliente() {
+  const cnpj = document.getElementById('fin-cli').value;
+  const c = clientes.find(cl => cl.cnpj === cnpj);
+  const inp = document.getElementById('fin-valor-total');
+  if (c && c.valor) {
+    inp.value = c.valor;
+  } else {
+    inp.value = '';
+  }
+}
+
+function registrarPagamento() {
+  const cnpj = document.getElementById('fin-cli').value;
+  if (!cnpj) { toast('Selecione um cliente'); return; }
+  const c = clientes.find(cl => cl.cnpj === cnpj);
+  const val = parseFloat(document.getElementById('fin-valor-rec').value);
+  if (!val || val <= 0) { toast('Informe o valor recebido'); return; }
+  const pag = {
+    id: Date.now(),
+    cnpj,
+    nome: c ? c.nome : cnpj,
+    parcela: document.getElementById('fin-parcela').value,
+    valor: val,
+    valorTotal: c ? c.valor : '',
+    data: document.getElementById('fin-data-rec').value || new Date().toLocaleDateString('pt-BR'),
+    forma: document.getElementById('fin-forma').value,
+    status: document.getElementById('fin-status').value,
+    obs: document.getElementById('fin-obs').value,
+    registradoEm: new Date().toLocaleDateString('pt-BR'),
+  };
+  pagamentos.push(pag);
+  salvarPagamentos();
+  renderFinanceiro();
+  // limpar form
+  document.getElementById('fin-valor-rec').value = '';
+  document.getElementById('fin-obs').value = '';
+  document.getElementById('fin-data-rec').value = '';
+  toast('✓ Pagamento registrado!');
+}
+
+function excluirPagamento(id) {
+  if (!confirm('Excluir este registro de pagamento?')) return;
+  pagamentos = pagamentos.filter(p => p.id !== id);
+  salvarPagamentos();
+  renderFinanceiro();
+  toast('Registro excluído');
+}
+
+function renderFinanceiro() {
+  // Popular select de clientes
+  const sel = document.getElementById('fin-cli');
+  if (sel) {
+    const opts = clientes.map(c => `<option value="${c.cnpj}">${c.nome}</option>`).join('');
+    sel.innerHTML = '<option value="">— Selecione —</option>' + opts;
+  }
+
+  // Métricas
+  let total = 0, recebido = 0, pendente = 0, atrasado = 0;
+  // Total contratado = soma dos valores dos clientes
+  clientes.forEach(c => {
+    const v = parseFloat((c.valor||'').replace('R$','').replace(/\./g,'').replace(',','.')) || 0;
+    total += v;
+  });
+  pagamentos.forEach(p => {
+    if (p.status === 'recebido') recebido += p.valor;
+    else if (p.status === 'pendente') pendente += p.valor;
+    else if (p.status === 'atrasado') atrasado += p.valor;
+  });
+  const fmt = v => 'R$ ' + v.toLocaleString('pt-BR', {minimumFractionDigits:2});
+  const el = id => document.getElementById(id);
+  if (el('fin-total')) el('fin-total').textContent = fmt(total);
+  if (el('fin-recebido')) el('fin-recebido').textContent = fmt(recebido);
+  if (el('fin-pendente')) el('fin-pendente').textContent = fmt(pendente);
+  if (el('fin-atrasado')) el('fin-atrasado').textContent = fmt(atrasado);
+
+  // Badge sidebar
+  const atr = pagamentos.filter(p => p.status === 'atrasado').length;
+  const nbFin = document.getElementById('nb-fin');
+  if (nbFin) { nbFin.textContent = atr; nbFin.style.display = atr > 0 ? 'inline-block' : 'none'; }
+
+  renderExtrato();
+  renderResumoPorCliente();
+}
+
+function renderExtrato() {
+  const filtro = document.getElementById('fin-filtro') ? document.getElementById('fin-filtro').value : 'todos';
+  const box = document.getElementById('extrato-container');
+  if (!box) return;
+  const lista = filtro === 'todos' ? pagamentos : pagamentos.filter(p => p.status === filtro);
+  if (lista.length === 0) {
+    box.innerHTML = '<div style="text-align:center;color:var(--text3);font-size:13px;padding:20px">Nenhum pagamento ' + (filtro !== 'todos' ? filtro : 'registrado') + ' ainda</div>';
+    return;
+  }
+  const corStatus = {recebido:'b-ok', pendente:'b-warn', atrasado:'b-err'};
+  const labelStatus = {recebido:'Recebido ✅', pendente:'Pendente ⏳', atrasado:'Atrasado ⚠️'};
+  box.innerHTML = lista.slice().reverse().map(p => `
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border2);font-size:13px">
+      <div style="flex:1">
+        <div style="font-weight:600;color:var(--text)">${p.nome}</div>
+        <div style="font-size:11px;color:var(--text3)">${p.parcela} · ${p.forma} · ${p.data}${p.obs ? ' · ' + p.obs : ''}</div>
+      </div>
+      <div style="font-weight:600;color:var(--text);min-width:90px;text-align:right">R$ ${p.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
+      <span class="badge ${corStatus[p.status]}">${labelStatus[p.status]}</span>
+      <button onclick="excluirPagamento(${p.id})" style="border:none;background:none;cursor:pointer;color:var(--text3);font-size:16px;padding:0 4px" title="Excluir">×</button>
+    </div>`).join('');
+}
+
+function renderResumoPorCliente() {
+  const box = document.getElementById('resumo-clientes');
+  if (!box) return;
+  if (clientes.length === 0) {
+    box.innerHTML = '<div style="text-align:center;color:var(--text3);font-size:13px;padding:16px">Nenhum cliente cadastrado</div>';
+    return;
+  }
+  box.innerHTML = clientes.map(c => {
+    const valorTotal = parseFloat((c.valor||'').replace('R$','').replace(/\./g,'').replace(',','.')) || 0;
+    const pags = pagamentos.filter(p => p.cnpj === c.cnpj);
+    const receb = pags.filter(p => p.status === 'recebido').reduce((s,p) => s+p.valor, 0);
+    const pend = pags.filter(p => p.status === 'pendente').reduce((s,p) => s+p.valor, 0);
+    const atr = pags.filter(p => p.status === 'atrasado').reduce((s,p) => s+p.valor, 0);
+    const pct = valorTotal > 0 ? Math.round((receb/valorTotal)*100) : 0;
+    const pc = pct >= 100 ? 'pf-green' : pct >= 50 ? 'pf-amber' : 'pf-red';
+    const fmt = v => 'R$ ' + v.toLocaleString('pt-BR',{minimumFractionDigits:2});
+    return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border2);font-size:13px">
+      <div style="flex:1">
+        <div style="font-weight:600;color:var(--text)">${c.nome}</div>
+        <div style="font-size:11px;color:var(--text3)">Contrato: ${fmt(valorTotal)} · Recebido: ${fmt(receb)}${pend>0?' · Pendente: '+fmt(pend):''}${atr>0?' · Atrasado: '+fmt(atr):''}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="progress-bar" style="width:80px"><div class="progress-fill ${pc}" style="width:${pct}%"></div></div>
+        <span style="font-size:11px;color:var(--text3);min-width:32px">${pct}%</span>
+      </div>
+      ${atr>0?'<span class="badge b-err">Atrasado</span>':receb>=valorTotal&&valorTotal>0?'<span class="badge b-ok">Quitado</span>':'<span class="badge b-neu">Em andamento</span>'}
+    </div>`;
+  }).join('');
+}
+
+function gerarCobranca() {
+  const cnpj = document.getElementById('fin-cli').value;
+  const c = clientes.find(cl => cl.cnpj === cnpj);
+  const nome = c ? c.nome : '[cliente]';
+  const valor = c ? c.valor : '[valor]';
+  const prompt = `Gere uma mensagem de cobrança profissional e cordial para o cliente "${nome}" referente ao serviço DRPS NR-1, valor: ${valor}. Tom respeitoso, objetivo, sem ser agressivo. Incluir o PIX ou dados bancários (deixar espaço para preencher). Assinar como Cinthia Kliman & VDL Gestão e Estratégia.`;
+  navigator.clipboard.writeText(prompt).then(() => toast('Prompt copiado! Cole no Claude.ai')).catch(() => {});
+}
+
+function gerarRecibo() {
+  const cnpj = document.getElementById('fin-cli').value;
+  const c = clientes.find(cl => cl.cnpj === cnpj);
+  const nome = c ? c.nome : '[cliente]';
+  const valor = document.getElementById('fin-valor-rec').value || '[valor]';
+  const forma = document.getElementById('fin-forma').value;
+  const data = document.getElementById('fin-data-rec').value || new Date().toLocaleDateString('pt-BR');
+  const prompt = `Gere um recibo de pagamento para: Cliente: ${nome}, Serviço: Diagnóstico de Riscos Psicossociais (DRPS) NR-1, Valor: R$ ${valor}, Forma: ${forma}, Data: ${data}. Formato profissional. Assinar como VDL Gestão & Estratégia, CNPJ: 65.425.722/0001-33.`;
+  navigator.clipboard.writeText(prompt).then(() => toast('Prompt copiado!')).catch(() => {});
+}
+
+// ═══════════════════════════════════════════════════
 // INICIALIZAÇÃO
 // ═══════════════════════════════════════════════════
 renderDash();
 renderEixos();
+renderFinanceiro();
 setInterval(clock, 1000);
 clock();
 </script>
