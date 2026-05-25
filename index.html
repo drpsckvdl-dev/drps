@@ -271,6 +271,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-width="2"/></svg>
       <span>Contrato</span>
     </button>
+    <button class="nav-item" onclick="nav('proposta',this)" title="Proposta">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-width="2"/></svg>
+      <span>Proposta</span>
+    </button>
     <button class="nav-item" onclick="nav('formulario',this)" title="Formulário">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" stroke-width="2"/></svg>
       <span>Formulário DRPS</span>
@@ -380,7 +384,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 
     <div class="section-label">Condições comerciais</div>
     <div class="form-grid">
-      <div class="field"><label>Valor calculado automaticamente</label><input id="f-valor" type="text" readonly placeholder="Preencha os colaboradores"></div>
+      <div class="field"><label>Valor negociado com o cliente (editável) *</label><input id="f-valor" type="text" placeholder="Ex: R$ 6.000,00 (editável)"></div>
+      <div class="field-note" style="grid-column:1/-1;margin-top:-6px;font-size:11px;color:var(--text3)">💡 O valor sugerido é calculado automaticamente (R$75/colab até 500 · R$65 acima de 500), mas você pode editar livremente conforme a negociação.</div>
       <div class="field"><label>Forma de pagamento</label><select id="f-pgto"><option>50% na assinatura + 50% na entrega</option><option>100% na assinatura</option><option>100% na entrega</option><option>3x iguais</option><option>A combinar</option></select></div>
       <div class="field"><label>Data da assinatura</label><input id="f-data" type="date"></div>
       <div class="field"><label>Prazo de entrega do laudo</label><select id="f-prazo"><option>7 dias úteis após coleta</option><option>10 dias úteis após coleta</option><option>15 dias úteis após coleta</option><option>A combinar</option></select></div>
@@ -698,6 +703,72 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 
 </div>
 
+
+<!-- ═══════════════════ PROPOSTA ════════════════════ -->
+<div id="pane-proposta" class="pane">
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon ci-blue">
+        <svg width="20" height="20" fill="none" stroke="#1A3A5C" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-width="2"/></svg>
+      </div>
+      <div><div class="card-title">Gerar proposta comercial</div><div class="card-desc">Proposta profissional gerada com IA — pronta para enviar ao cliente</div></div>
+    </div>
+
+    <div class="section-label">Selecionar cliente</div>
+    <div style="display:flex;gap:10px;align-items:flex-end;margin-bottom:16px;flex-wrap:wrap">
+      <div class="field" style="flex:1;min-width:220px">
+        <select id="prop-cli" onchange="preencherDadosProposta()">
+          <option value="">— Selecione um cliente —</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="gerarPropostaIA()" id="btn-gerar-prop">
+        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" stroke-width="2"/></svg>
+        Gerar proposta
+      </button>
+      <button class="btn btn-secondary" onclick="copiarProposta()" id="btn-copiar-prop" style="display:none">
+        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" stroke-width="2"/></svg>
+        Copiar proposta
+      </button>
+      <button class="btn btn-secondary" onclick="imprimirProposta()" id="btn-imprimir-prop" style="display:none">
+        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" stroke-width="2"/></svg>
+        Imprimir / PDF
+      </button>
+    </div>
+
+    <!-- Preview dos dados -->
+    <div id="prop-dados-preview" style="display:none;margin-bottom:16px">
+      <div class="section-label">Dados da proposta</div>
+      <div id="prop-dados-box" style="background:var(--surface2);border-radius:var(--radius-sm);padding:12px 16px;font-size:12px;line-height:2;color:var(--text2)"></div>
+    </div>
+
+    <!-- Loading -->
+    <div class="loading" id="prop-loading">
+      <div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+      <span>Gerando proposta com IA... aguarde alguns segundos</span>
+    </div>
+
+    <!-- Resultado -->
+    <div id="prop-resultado" style="display:none">
+      <div class="section-label">Proposta gerada</div>
+      <div id="prop-content" style="
+        background:var(--surface);
+        border:1px solid var(--border);
+        border-radius:var(--radius);
+        padding:32px 36px;
+        font-size:13px;
+        line-height:1.9;
+        color:var(--text);
+        white-space:pre-wrap;
+        max-height:600px;
+        overflow-y:auto;
+        font-family:Georgia, serif;
+      "></div>
+    </div>
+
+  </div>
+</div>
+
 </div><!-- /content -->
 </div><!-- /main -->
 </div><!-- /app -->
@@ -759,6 +830,7 @@ const TITLES = {
   respostas:['Análise de respostas','Médias dos 13 eixos NR-1'],
   laudo:['Gerar laudo','Documento técnico DRPS completo'],
   financeiro:['Financeiro','Receita, pagamentos e inadimplência'],
+  proposta:['Proposta Comercial','Gerar proposta profissional com IA'],
 };
 
 function nav(id, btn) {
@@ -779,6 +851,7 @@ function nav(id, btn) {
   if (id === 'dash') renderDash();
   if (id === 'respostas') { popularSelects(); renderEixos(); }
   if (id === 'financeiro') renderFinanceiro();
+  if (id === 'proposta') { popularSelectsProposta(); }
   if (id === 'contrato' || id === 'formulario' || id === 'laudo') popularSelects();
 }
 
@@ -852,8 +925,20 @@ function salvarCliente() {
   salvar();
   renderTracker(cnpj, nome);
   popularSelects();
-  toast('✓ Cliente salvo com sucesso!');
   renderDash();
+
+  // Gera proposta automaticamente
+  const sets = (cliente.setores||'').split('\n').filter(s=>s.trim());
+  const prompt = `Gere uma proposta comercial completa e profissional para:\n\nEmpresa: ${cliente.nome}\nCNPJ: ${cliente.cnpj}\nSetor de atividade: ${cliente.atividade||'não informado'}\nResponsável: ${cliente.responsavel||'não informado'} (${cliente.cargo||''})\nE-mail: ${cliente.email||'não informado'}\nTotal de colaboradores: ${cliente.colaboradores||'não informado'}\nSetores a avaliar: ${sets.join(', ')||'não informado'}\nValor negociado: ${cliente.valor||'a definir'}\nForma de pagamento: ${cliente.pagamento||'a combinar'}\nPrazo do laudo: ${cliente.prazoLaudo||'a combinar'}\n\nInclua:\n1. Apresentação da proposta (contexto NR-1 e urgência legal)\n2. Escopo do serviço (Projeto Essencial — diagnóstico + laudo)\n3. Metodologia resumida (13 eixos, questionário anônimo, laudo técnico)\n4. Cronograma proposto\n5. Investimento e forma de pagamento\n6. Diferenciais do serviço\n7. Próximos passos (assinatura do contrato)\n\nFormato: documento profissional pronto para enviar por e-mail.\nAssinar como Cinthia Kliman & VDL Gestão e Estratégia.\nContatos: cinthiakliman@gmail.com / vdl.vs.contato@gmail.com / (11) 97824-7337`;
+
+  // Vai direto para a aba de proposta
+  toast('✓ Cliente salvo! Gerando proposta...');
+  setTimeout(function() {
+    nav('proposta', null);
+    document.getElementById('prop-cli').value = cnpj;
+    preencherDadosProposta();
+    setTimeout(function() { gerarPropostaIA(); }, 400);
+  }, 600);
 }
 
 // ═══════════════════════════════════════════════════
@@ -1336,6 +1421,143 @@ function clock() {
 }
 
 // ═══════════════════════════════════════════════════
+// PROPOSTA COMERCIAL COM IA
+// ═══════════════════════════════════════════════════
+
+function popularSelectsProposta() {
+  const sel = document.getElementById('prop-cli');
+  if (!sel) return;
+  const opts = clientes.map(c => `<option value="${c.cnpj}">${c.nome}</option>`).join('');
+  sel.innerHTML = '<option value="">— Selecione um cliente —</option>' + opts;
+}
+
+function preencherDadosProposta() {
+  const cnpj = document.getElementById('prop-cli').value;
+  const box = document.getElementById('prop-dados-preview');
+  const dadosBox = document.getElementById('prop-dados-box');
+  const resultado = document.getElementById('prop-resultado');
+  const btCopiar = document.getElementById('btn-copiar-prop');
+  const btImprimir = document.getElementById('btn-imprimir-prop');
+  resultado.style.display = 'none';
+  btCopiar.style.display = 'none';
+  btImprimir.style.display = 'none';
+  if (!cnpj) { box.style.display = 'none'; return; }
+  const c = clientes.find(cl => cl.cnpj === cnpj);
+  if (!c) return;
+  const sets = (c.setores||'').split('\n').filter(s=>s.trim());
+  box.style.display = 'block';
+  dadosBox.innerHTML =
+    '<strong>Empresa:</strong> ' + c.nome + ' &nbsp;·&nbsp; <strong>CNPJ:</strong> ' + c.cnpj + '<br>' +
+    '<strong>Responsável:</strong> ' + (c.responsavel||'—') + ' (' + (c.cargo||'—') + ') &nbsp;·&nbsp; <strong>E-mail:</strong> ' + (c.email||'—') + '<br>' +
+    '<strong>Colaboradores:</strong> ' + (c.colaboradores||'?') + ' &nbsp;·&nbsp; <strong>Setores:</strong> ' + sets.join(', ') + '<br>' +
+    '<strong>Valor negociado:</strong> ' + (c.valor||'a definir') + ' &nbsp;·&nbsp; <strong>Pagamento:</strong> ' + (c.pagamento||'—');
+}
+
+async function gerarPropostaIA() {
+  const cnpj = document.getElementById('prop-cli').value;
+  if (!cnpj) { toast('Selecione um cliente primeiro'); return; }
+  const c = clientes.find(cl => cl.cnpj === cnpj);
+  if (!c) { toast('Cliente não encontrado'); return; }
+
+  const sets = (c.setores||'').split('\n').filter(s=>s.trim());
+  const loading = document.getElementById('prop-loading');
+  const resultado = document.getElementById('prop-resultado');
+  const content = document.getElementById('prop-content');
+  const btnGerar = document.getElementById('btn-gerar-prop');
+  const btCopiar = document.getElementById('btn-copiar-prop');
+  const btImprimir = document.getElementById('btn-imprimir-prop');
+
+  loading.style.display = 'flex';
+  resultado.style.display = 'none';
+  btCopiar.style.display = 'none';
+  btImprimir.style.display = 'none';
+  btnGerar.disabled = true;
+  btnGerar.textContent = 'Gerando...';
+
+  const prompt = `Você é uma especialista em gestão empresarial e saúde ocupacional. Gere uma proposta comercial completa, profissional e persuasiva para o serviço de Diagnóstico de Riscos Psicossociais (DRPS) conforme NR-1.
+
+DADOS DO CLIENTE:
+Empresa: ${c.nome}
+CNPJ: ${c.cnpj}
+Setor de atividade: ${c.atividade||'não informado'}
+Responsável: ${c.responsavel||'não informado'} — ${c.cargo||''}
+E-mail: ${c.email||'não informado'}
+Total de colaboradores: ${c.colaboradores||'não informado'}
+Setores a avaliar: ${sets.join(', ')||'não informado'}
+Valor negociado: ${c.valor||'a definir'}
+Forma de pagamento: ${c.pagamento||'a combinar'}
+Prazo de entrega do laudo: ${c.prazoLaudo||'a combinar'}
+Observações: ${c.observacoes||'nenhuma'}
+
+ESTRUTURA DA PROPOSTA:
+1. Cabeçalho com logos (indicar onde inserir) e data
+2. Apresentação — contexto da NR-1 e urgência (fiscalização a partir de 26/05/2026)
+3. Objetivo da proposta
+4. Escopo do serviço — Projeto Essencial (diagnóstico + laudo técnico)
+5. Metodologia resumida — 13 eixos FRPRT, questionário anônimo, Matriz de Risco NR-1
+6. Cronograma proposto — etapas e prazos
+7. Investimento — valor negociado e condições de pagamento
+8. Diferenciais — integração entre gestão, comportamento e saúde mental
+9. Próximos passos — assinatura do contrato
+10. Assinatura — Cinthia Kliman & VDL Gestão e Estratégia
+
+IMPORTANTE: Escreva em português brasileiro, tom profissional e acolhedor, sem termos técnicos excessivos. A proposta deve convencer o cliente a assinar o contrato.`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const data = await response.json();
+    const texto = data.content && data.content[0] ? data.content[0].text : '';
+
+    if (texto) {
+      content.textContent = texto;
+      resultado.style.display = 'block';
+      btCopiar.style.display = 'inline-flex';
+      btImprimir.style.display = 'inline-flex';
+      setStatus(cnpj, 'proposta');
+      salvar();
+      toast('✓ Proposta gerada com sucesso!');
+    } else {
+      toast('Erro ao gerar. Tente novamente.');
+    }
+  } catch(e) {
+    toast('Erro de conexão. Verifique a internet e tente novamente.');
+    console.error(e);
+  } finally {
+    loading.style.display = 'none';
+    btnGerar.disabled = false;
+    btnGerar.innerHTML = '<svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" stroke-width="2"/></svg> Gerar proposta';
+  }
+}
+
+function copiarProposta() {
+  const txt = document.getElementById('prop-content').textContent;
+  navigator.clipboard.writeText(txt).then(() => toast('Proposta copiada!')).catch(() => toast('Erro ao copiar'));
+}
+
+function imprimirProposta() {
+  const txt = document.getElementById('prop-content').textContent;
+  const win = window.open('', '_blank');
+  win.document.write(`
+    <html><head><title>Proposta Comercial DRPS</title>
+    <style>
+      body{font-family:Georgia,serif;font-size:13px;line-height:1.9;color:#1a1916;padding:40px 60px;max-width:800px;margin:0 auto}
+      @media print{body{padding:20px}}
+    </style></head>
+    <body><pre style="white-space:pre-wrap;font-family:Georgia,serif">${txt}</pre></body></html>`);
+  win.document.close();
+  win.print();
+}
+
+// ═══════════════════════════════════════════════════
 // FINANCEIRO
 // ═══════════════════════════════════════════════════
 let pagamentos = JSON.parse(localStorage.getItem('drps_pagamentos') || '[]');
@@ -1507,6 +1729,7 @@ function gerarRecibo() {
 renderDash();
 renderEixos();
 renderFinanceiro();
+popularSelectsProposta();
 setInterval(clock, 1000);
 clock();
 </script>
