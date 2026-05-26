@@ -401,6 +401,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
         <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke-width="2"/></svg>
         Gerar e-mail de boas-vindas
       </button>
+      <button class="btn btn-secondary" onclick="criarPastasDrive()">
+        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" stroke-width="2"/></svg>
+        Criar pastas no Drive
+      </button>
     </div>
   </div>
 
@@ -1531,6 +1535,174 @@ function toast(msg) {
 function clock() {
   const now = new Date();
   document.getElementById('clock').textContent = now.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'}) + ' · ' + now.toLocaleDateString('pt-BR');
+}
+
+// ═══════════════════════════════════════════════════
+// GOOGLE DRIVE — PASTAS POR CLIENTE
+// ═══════════════════════════════════════════════════
+
+// ID da pasta raiz DRPS no Drive
+// Instrução: crie uma pasta chamada "DRPS — Clientes" no seu Drive
+// e cole o ID dela abaixo (o ID fica na URL da pasta)
+var DRIVE_PASTA_RAIZ_ID = '';
+
+function criarPastasDrive() {
+  const nome = document.getElementById('f-nome').value.trim();
+  const cnpj = document.getElementById('f-cnpj').value.trim();
+  if (!nome) { toast('Preencha o nome da empresa primeiro'); return; }
+  criarEstruturaDrive(nome, cnpj);
+}
+
+function abrirPastaDrive(nome) {
+  // Busca pasta salva do cliente
+  const key = 'drps_drive_' + nome.replace(/\s+/g,'_');
+  const saved = localStorage.getItem(key);
+  if (saved) {
+    window.open(saved, '_blank');
+  } else {
+    // Abre o Drive na pasta raiz para localizar manualmente
+    if (DRIVE_PASTA_RAIZ_ID) {
+      window.open('https://drive.google.com/drive/folders/' + DRIVE_PASTA_RAIZ_ID, '_blank');
+    } else {
+      window.open('https://drive.google.com/drive/', '_blank');
+    }
+    toast('Pasta não encontrada. Crie primeiro em Novo Cliente → Criar pastas no Drive');
+  }
+}
+
+function criarEstruturaDrive(nome, cnpj) {
+  var nomeSeguro = nome.replace(/[^\w\s\-]/g, '').trim();
+  var nomeCompleto = nomeSeguro + (cnpj ? ' (' + cnpj + ')' : '');
+
+  var scriptApps = [
+    'function criarPastasCliente() {',
+    '  var nomeCliente = "' + nomeCompleto + '";',
+    '  var pastaRaiz;',
+    '  var buscaRaiz = DriveApp.getFoldersByName("DRPS - Clientes");',
+    '  if (buscaRaiz.hasNext()) {',
+    '    pastaRaiz = buscaRaiz.next();',
+    '  } else {',
+    '    pastaRaiz = DriveApp.createFolder("DRPS - Clientes");',
+    '  }',
+    '  var pastaCliente;',
+    '  var buscaCliente = pastaRaiz.getFoldersByName(nomeCliente);',
+    '  if (buscaCliente.hasNext()) {',
+    '    pastaCliente = buscaCliente.next();',
+    '    Logger.log("Pasta ja existe!");',
+    '  } else {',
+    '    pastaCliente = pastaRaiz.createFolder(nomeCliente);',
+    '  }',
+    '  ["1. Contrato","2. Formulario e Respostas","3. Laudo","4. Proposta Comercial"].forEach(function(n) {',
+    '    var b = pastaCliente.getFoldersByName(n);',
+    '    if (!b.hasNext()) pastaCliente.createFolder(n);',
+    '  });',
+    '  Logger.log("Pastas criadas com sucesso!");',
+    '  Logger.log("Link: " + pastaCliente.getUrl());',
+    '}'
+  ].join('\n');
+
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.className = 'drive-overlay';
+
+  var div = document.createElement('div');
+  div.style.cssText = 'background:var(--surface);border-radius:var(--radius-lg);padding:24px;max-width:600px;width:100%;max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3)';
+
+  // Cabeçalho
+  var header = document.createElement('div');
+  header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:16px';
+  header.innerHTML = '<div><div style="font-size:15px;font-weight:600">Criar pastas no Google Drive</div><div style="font-size:12px;color:var(--text3)">Cliente: ' + nomeSeguro + '</div></div>';
+  var btnX = document.createElement('button');
+  btnX.textContent = '×';
+  btnX.style.cssText = 'border:none;background:none;cursor:pointer;font-size:22px;color:var(--text3)';
+  btnX.onclick = function() { overlay.remove(); };
+  header.appendChild(btnX);
+  div.appendChild(header);
+
+  // Estrutura de pastas
+  var estrutura = document.createElement('div');
+  estrutura.style.cssText = 'background:var(--surface2);border-radius:var(--radius-sm);padding:14px;font-family:monospace;font-size:12px;line-height:1.9;margin-bottom:16px;white-space:pre';
+  estrutura.textContent = '📁 DRPS — Clientes\n   └── 📁 ' + nomeCompleto + '\n         ├── 📁 1. Contrato\n         ├── 📁 2. Formulario e Respostas\n         ├── 📁 3. Laudo\n         └── 📁 4. Proposta Comercial';
+  div.appendChild(estrutura);
+
+  // Passos
+  var passos = document.createElement('div');
+  passos.innerHTML = '<div style="font-size:13px;font-weight:600;margin-bottom:10px">Como criar — 3 passos:</div>' +
+    '<div style="font-size:12px;color:var(--text2);line-height:2">' +
+    '<strong>1.</strong> Clique em <strong>Copiar script</strong> abaixo<br>' +
+    '<strong>2.</strong> Abra script.google.com → Novo projeto → apague tudo → cole → selecione <strong>criarPastasCliente</strong> → clique <strong>▶ Executar</strong><br>' +
+    '<strong>3.</strong> As pastas aparecem no Drive. Copie o link da pasta e cole abaixo.' +
+    '</div>';
+  div.appendChild(passos);
+
+  // Preview do script
+  var pre = document.createElement('div');
+  pre.style.cssText = 'background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;font-family:monospace;font-size:10px;line-height:1.6;max-height:110px;overflow-y:auto;margin:12px 0;color:var(--text2);white-space:pre';
+  pre.textContent = scriptApps;
+  div.appendChild(pre);
+
+  // Botões copiar e abrir
+  var btnRow = document.createElement('div');
+  btnRow.style.cssText = 'display:flex;gap:8px;margin-bottom:16px';
+
+  var btnCopiar = document.createElement('button');
+  btnCopiar.className = 'btn btn-primary';
+  btnCopiar.textContent = 'Copiar script';
+  btnCopiar.onclick = function() {
+    navigator.clipboard.writeText(scriptApps).then(function() {
+      btnCopiar.textContent = '✓ Copiado!';
+      setTimeout(function() { btnCopiar.textContent = 'Copiar script'; }, 1500);
+    });
+  };
+  btnRow.appendChild(btnCopiar);
+
+  var btnAbrir = document.createElement('button');
+  btnAbrir.className = 'btn btn-secondary';
+  btnAbrir.textContent = 'Abrir script.google.com';
+  btnAbrir.onclick = function() { window.open('https://script.google.com', '_blank'); };
+  btnRow.appendChild(btnAbrir);
+  div.appendChild(btnRow);
+
+  // Campo link do Drive
+  var linkArea = document.createElement('div');
+  linkArea.style.cssText = 'border-top:1px solid var(--border2);padding-top:14px';
+  linkArea.innerHTML = '<div style="font-size:12px;font-weight:500;margin-bottom:6px">Cole o link da pasta após criar no Drive:</div>';
+
+  var inputRow = document.createElement('div');
+  inputRow.style.cssText = 'display:flex;gap:8px';
+
+  var linkInput = document.createElement('input');
+  linkInput.id = 'drive-link-input';
+  linkInput.type = 'text';
+  linkInput.placeholder = 'https://drive.google.com/drive/folders/...';
+  linkInput.style.cssText = 'flex:1;font-size:12px;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-sm)';
+  inputRow.appendChild(linkInput);
+
+  var btnSalvar = document.createElement('button');
+  btnSalvar.className = 'btn btn-success btn-sm';
+  btnSalvar.textContent = 'Salvar link';
+  btnSalvar.onclick = function() { salvarLinkDrive(nomeSeguro); };
+  inputRow.appendChild(btnSalvar);
+
+  linkArea.appendChild(inputRow);
+  linkArea.innerHTML += '<div style="font-size:11px;color:var(--text3);margin-top:5px">Link salvo no sistema — acesse pelo botão na lista de clientes.</div>';
+  div.appendChild(linkArea);
+
+  overlay.appendChild(div);
+  overlay.addEventListener('click', function(e) { if(e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+
+function salvarLinkDrive(nomeCliente) {
+  const link = document.getElementById('drive-link-input').value.trim();
+  if (!link || !link.includes('drive.google.com')) {
+    toast('Cole um link válido do Google Drive');
+    return;
+  }
+  const key = 'drps_drive_' + nomeCliente.replace(/\s+/g,'_');
+  localStorage.setItem(key, link);
+  document.querySelector('.drive-overlay').remove();
+  toast('✓ Link do Drive salvo! Acesse pela lista de clientes.');
 }
 
 // ═══════════════════════════════════════════════════
