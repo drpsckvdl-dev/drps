@@ -1443,18 +1443,174 @@ function gerarComparativo() {
 // MODAL
 // ═══════════════════════════════════════════════════
 function abrirModal(cnpj) {
-  const c = clientes.find(cl => cl.cnpj === cnpj);
+  var c = clientes.find(function(cl){ return cl.cnpj === cnpj; });
   if (!c) return;
-  document.getElementById('modal-sub').textContent = c.nome + ' — ' + cnpj;
-  document.getElementById('modal-actions').innerHTML = `
-    <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
-      <button class="btn btn-secondary" onclick="fecharModal();nav('contrato',null);document.getElementById('sel-cliente-cont').value='${cnpj}';preencherContrato()">Ver / gerar contrato</button>
-      <button class="btn btn-secondary" onclick="fecharModal();nav('formulario',null);document.getElementById('sel-cliente-form').value='${cnpj}';gerarLinkCliente()">Link DRPS personalizado</button>
-      <button class="btn btn-secondary" onclick="fecharModal();nav('respostas',null);document.getElementById('sel-cli-resp').value='${cnpj}';carregarSetoresResp()">Analisar respostas</button>
-      <button class="btn btn-secondary" onclick="fecharModal();nav('laudo',null);document.getElementById('sel-cli-laudo').value='${cnpj}'">Gerar laudo</button>
-      <button class="btn btn-secondary" onclick="marcarEtapa('${cnpj}')">Atualizar status</button>
-    </div>`;
-  document.getElementById('modal-overlay').classList.add('open');
+  abrirFichaCliente(c);
+}
+
+function abrirFichaCliente(c) {
+  var st = getStatus(c.cnpj);
+  var sets = (c.setores||'').split('\n').filter(function(s){ return s.trim(); });
+
+  // Calcular progresso
+  var total = ETAPAS.length;
+  var concluidas = ETAPAS.filter(function(e){ return st[e.id]; }).length;
+  var pct = Math.round((concluidas / total) * 100);
+
+  // Montar etapas do tracker
+  var trackerHTML = ETAPAS.map(function(e) {
+    var done = st[e.id];
+    var cor = done ? '#1A5C3A' : '#A8A59E';
+    var bg = done ? '#E8F5ED' : '#F0EFE9';
+    var icon = done ? '✓' : '○';
+    return '<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:0.5px solid #F0EFE9">' +
+      '<span style="width:24px;height:24px;border-radius:50%;background:' + bg + ';color:' + cor + ';font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">' + icon + '</span>' +
+      '<span style="flex:1;font-size:12px;color:' + (done ? '#1A1916' : '#A8A59E') + ';font-weight:' + (done ? '500' : '400') + '">' + e.label + '</span>' +
+      '<span style="font-size:10px;padding:2px 8px;border-radius:999px;background:' + (done ? '#E8F5ED' : '#F0EFE9') + ';color:' + (done ? '#1A5C3A' : '#A8A59E') + '">' + (done ? 'Concluído' : 'Pendente') + '</span>' +
+    '</div>';
+  }).join('');
+
+  // Abrir ficha em overlay próprio
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.className = 'ficha-overlay';
+
+  var initials = c.nome.split(' ').slice(0,2).map(function(w){ return w[0]; }).join('').toUpperCase();
+
+  var div = document.createElement('div');
+  div.style.cssText = 'background:#fff;border-radius:14px;width:100%;max-width:680px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.25);display:flex;flex-direction:column';
+
+  // Header
+  var header = document.createElement('div');
+  header.style.cssText = 'display:flex;align-items:center;gap:14px;padding:20px 24px;border-bottom:1px solid #F0EFE9;position:sticky;top:0;background:#fff;z-index:1';
+  header.innerHTML =
+    '<div style="width:46px;height:46px;border-radius:50%;background:#E8F0F8;color:#1A3A5C;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">' + initials + '</div>' +
+    '<div style="flex:1"><div style="font-size:16px;font-weight:600;color:#1A1916">' + c.nome + '</div>' +
+    '<div style="font-size:12px;color:#A8A59E;margin-top:1px">CNPJ: ' + c.cnpj + ' · Cadastrado em: ' + (c.cadastradoEm||'—') + '</div></div>';
+
+  var btnX = document.createElement('button');
+  btnX.innerHTML = '×';
+  btnX.style.cssText = 'border:none;background:none;cursor:pointer;font-size:24px;color:#A8A59E;line-height:1;flex-shrink:0';
+  btnX.onclick = function(){ overlay.remove(); };
+  header.appendChild(btnX);
+  div.appendChild(header);
+
+  // Body
+  var body = document.createElement('div');
+  body.style.cssText = 'padding:20px 24px;display:flex;flex-direction:column;gap:16px';
+
+  // Progresso
+  var pcFill = pct >= 80 ? '#27AE60' : pct >= 40 ? '#F39C12' : '#E74C3C';
+  body.innerHTML =
+    // Bloco de progresso
+    '<div>' +
+    '<div style="font-size:11px;font-weight:600;color:#A8A59E;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Progresso do processo</div>' +
+    '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">' +
+    '<div style="flex:1;height:8px;background:#F0EFE9;border-radius:4px;overflow:hidden"><div style="height:100%;width:' + pct + '%;background:' + pcFill + ';border-radius:4px;transition:.3s"></div></div>' +
+    '<span style="font-size:13px;font-weight:600;color:#1A1916">' + pct + '%</span>' +
+    '<span style="font-size:11px;color:#A8A59E">' + concluidas + '/' + total + ' etapas</span>' +
+    '</div>' +
+    '<div>' + trackerHTML + '</div>' +
+    '</div>' +
+
+    // Dados da empresa
+    '<div>' +
+    '<div style="font-size:11px;font-weight:600;color:#A8A59E;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Dados da empresa</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">' +
+    '<div style="background:#F7F6F2;padding:10px 12px;border-radius:6px"><div style="color:#A8A59E;margin-bottom:2px">Setor de atividade</div><div style="font-weight:500;color:#1A1916">' + (c.atividade||'—') + '</div></div>' +
+    '<div style="background:#F7F6F2;padding:10px 12px;border-radius:6px"><div style="color:#A8A59E;margin-bottom:2px">Endereço</div><div style="font-weight:500;color:#1A1916">' + (c.endereco||'—') + '</div></div>' +
+    '<div style="background:#F7F6F2;padding:10px 12px;border-radius:6px"><div style="color:#A8A59E;margin-bottom:2px">Responsável</div><div style="font-weight:500;color:#1A1916">' + (c.responsavel||'—') + ' — ' + (c.cargo||'—') + '</div></div>' +
+    '<div style="background:#F7F6F2;padding:10px 12px;border-radius:6px"><div style="color:#A8A59E;margin-bottom:2px">Contato</div><div style="font-weight:500;color:#1A1916">' + (c.email||'—') + '<br>' + (c.tel||'—') + '</div></div>' +
+    '</div></div>' +
+
+    // Estrutura e contrato
+    '<div>' +
+    '<div style="font-size:11px;font-weight:600;color:#A8A59E;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Estrutura e condições comerciais</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">' +
+    '<div style="background:#F7F6F2;padding:10px 12px;border-radius:6px"><div style="color:#A8A59E;margin-bottom:2px">Colaboradores</div><div style="font-weight:500;color:#1A1916">' + (c.colaboradores||'—') + '</div></div>' +
+    '<div style="background:#F7F6F2;padding:10px 12px;border-radius:6px"><div style="color:#A8A59E;margin-bottom:2px">Setores avaliados</div><div style="font-weight:500;color:#1A1916">' + (sets.join(', ')||'—') + '</div></div>' +
+    '<div style="background:#E8F0F8;padding:10px 12px;border-radius:6px"><div style="color:#A8A59E;margin-bottom:2px">Valor negociado</div><div style="font-weight:600;color:#1A3A5C;font-size:14px">' + (c.valor||'—') + '</div></div>' +
+    '<div style="background:#F7F6F2;padding:10px 12px;border-radius:6px"><div style="color:#A8A59E;margin-bottom:2px">Forma de pagamento</div><div style="font-weight:500;color:#1A1916">' + (c.pagamento||'—') + '</div></div>' +
+    '<div style="background:#F7F6F2;padding:10px 12px;border-radius:6px"><div style="color:#A8A59E;margin-bottom:2px">Data de assinatura</div><div style="font-weight:500;color:#1A1916">' + (c.dataAssinatura||'—') + '</div></div>' +
+    '<div style="background:#F7F6F2;padding:10px 12px;border-radius:6px"><div style="color:#A8A59E;margin-bottom:2px">Prazo do laudo</div><div style="font-weight:500;color:#1A1916">' + (c.prazoLaudo||'—') + '</div></div>' +
+    (c.observacoes ? '<div style="background:#F7F6F2;padding:10px 12px;border-radius:6px;grid-column:1/-1"><div style="color:#A8A59E;margin-bottom:2px">Observações</div><div style="font-weight:500;color:#1A1916">' + c.observacoes + '</div></div>' : '') +
+    '</div></div>';
+
+  div.appendChild(body);
+
+  // Ações
+  var footer = document.createElement('div');
+  footer.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;padding:16px 24px;border-top:1px solid #F0EFE9;background:#fff;position:sticky;bottom:0';
+
+  var acoes = [
+    {label:'Gerar contrato', fn: function(){ overlay.remove(); nav('contrato',null); document.getElementById('sel-cliente-cont').value=c.cnpj; preencherContrato(); }},
+    {label:'Link DRPS', fn: function(){ overlay.remove(); nav('formulario',null); document.getElementById('sel-cliente-form').value=c.cnpj; gerarLinkCliente(); }},
+    {label:'Respostas', fn: function(){ overlay.remove(); nav('respostas',null); document.getElementById('sel-cli-resp').value=c.cnpj; carregarSetoresResp(); }},
+    {label:'Gerar laudo', fn: function(){ overlay.remove(); nav('laudo',null); document.getElementById('sel-cli-laudo').value=c.cnpj; }},
+    {label:'Financeiro', fn: function(){ overlay.remove(); nav('financeiro',null); document.getElementById('fin-cli').value=c.cnpj; preencherFinCliente(); }},
+    {label:'Editar dados', fn: function(){ overlay.remove(); editarCliente(c.cnpj); }},
+    {label:'Atualizar etapa', fn: function(){ marcarEtapaFicha(c.cnpj, overlay); }},
+  ];
+
+  acoes.forEach(function(a) {
+    var btn = document.createElement('button');
+    btn.className = 'btn btn-secondary btn-sm';
+    btn.textContent = a.label;
+    btn.onclick = a.fn;
+    footer.appendChild(btn);
+  });
+
+  // Botão fechar
+  var btnFechar = document.createElement('button');
+  btnFechar.className = 'btn btn-secondary btn-sm';
+  btnFechar.textContent = 'Fechar';
+  btnFechar.style.marginLeft = 'auto';
+  btnFechar.onclick = function(){ overlay.remove(); };
+  footer.appendChild(btnFechar);
+
+  div.appendChild(footer);
+  overlay.appendChild(div);
+  overlay.addEventListener('click', function(e){ if(e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+
+function editarCliente(cnpj) {
+  var c = clientes.find(function(cl){ return cl.cnpj === cnpj; });
+  if (!c) return;
+  nav('cadastro', null);
+  // Preencher todos os campos com os dados do cliente
+  setTimeout(function() {
+    document.getElementById('f-nome').value = c.nome||'';
+    document.getElementById('f-cnpj').value = c.cnpj||'';
+    document.getElementById('f-ativ').value = c.atividade||'Educação';
+    document.getElementById('f-end').value = c.endereco||'';
+    document.getElementById('f-resp').value = c.responsavel||'';
+    document.getElementById('f-cargo').value = c.cargo||'';
+    document.getElementById('f-cpf').value = c.cpfResp||'';
+    document.getElementById('f-email').value = c.email||'';
+    document.getElementById('f-tel').value = c.tel||'';
+    document.getElementById('f-colab').value = c.colaboradores||'';
+    document.getElementById('f-nset').value = c.nSetores||'';
+    document.getElementById('f-setores').value = c.setores||'';
+    document.getElementById('f-valor').value = c.valor||'';
+    document.getElementById('f-pgto').value = c.pagamento||'50% na assinatura + 50% na entrega';
+    document.getElementById('f-data').value = c.dataAssinatura||'';
+    document.getElementById('f-prazo').value = c.prazoLaudo||'7 dias úteis após coleta';
+    document.getElementById('f-obs').value = c.observacoes||'';
+    toast('Dados carregados para edição. Altere e clique em Salvar.');
+  }, 200);
+}
+
+function marcarEtapaFicha(cnpj, overlay) {
+  var etapa = prompt('Digite a etapa concluída:\ncadastro, contrato, forms, coleta, analise, laudo, entrega');
+  if (etapa && ETAPAS.find(function(e){ return e.id === etapa; })) {
+    setStatus(cnpj, etapa);
+    renderDash();
+    toast('Etapa "' + etapa + '" marcada como concluída');
+    overlay.remove();
+    var c = clientes.find(function(cl){ return cl.cnpj === cnpj; });
+    if (c) setTimeout(function(){ abrirFichaCliente(c); }, 300);
+  }
 }
 
 function fecharModal(e) {
@@ -1462,15 +1618,7 @@ function fecharModal(e) {
   document.getElementById('modal-overlay').classList.remove('open');
 }
 
-function marcarEtapa(cnpj) {
-  const etapa = prompt('Digite a etapa concluída:\ncadastro, contrato, forms, coleta, analise, laudo, entrega');
-  if (etapa && ETAPAS.find(e => e.id === etapa)) {
-    setStatus(cnpj, etapa);
-    renderDash();
-    toast('Etapa "' + etapa + '" marcada como concluída');
-  }
-  fecharModal();
-}
+// marcarEtapa substituída por marcarEtapaFicha
 
 // ═══════════════════════════════════════════════════
 // UTILITÁRIOS
