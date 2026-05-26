@@ -646,18 +646,31 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   <div class="card">
     <div class="card-header">
       <div class="card-icon ci-green"><svg width="20" height="20" fill="none" stroke="#1A5C3A" viewBox="0 0 24 24"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2"/></svg></div>
-      <div><div class="card-title">Registrar pagamento</div><div class="card-desc">Marque entradas recebidas por cliente</div></div>
+      <div><div class="card-title">Registrar pagamento</div><div class="card-desc">Dados preenchidos automaticamente pelo cadastro e contrato</div></div>
     </div>
+
+    <div class="section-label">Selecionar cliente</div>
+    <div class="field" style="max-width:380px;margin-bottom:12px">
+      <select id="fin-cli" onchange="preencherFinCliente()">
+        <option value="">— Selecione um cliente —</option>
+      </select>
+    </div>
+
+    <!-- Info do contrato preenchida automaticamente -->
+    <div id="fin-info-contrato" style="display:none;margin-bottom:16px">
+      <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:12px 16px;font-size:12px;line-height:2;color:var(--text2)" id="fin-dados-box"></div>
+    </div>
+
+    <!-- Parcelas geradas automaticamente -->
+    <div id="fin-parcelas-auto" style="display:none">
+      <div class="section-label">Parcelas do contrato</div>
+      <div id="fin-parcelas-lista" style="margin-bottom:16px"></div>
+    </div>
+
+    <div class="section-label">Registrar entrada manual</div>
     <div class="form-grid">
-      <div class="field"><label>Cliente</label>
-        <select id="fin-cli" onchange="preencherFinCliente()">
-          <option value="">— Selecione —</option>
-        </select>
-      </div>
-      <div class="field"><label>Valor total do contrato</label>
-        <input id="fin-valor-total" type="text" readonly placeholder="Calculado automaticamente">
-      </div>
-      <div class="field"><label>Parcela</label>
+      <div class="field">
+        <label>Parcela</label>
         <select id="fin-parcela">
           <option>1ª parcela (entrada)</option>
           <option>2ª parcela (entrega)</option>
@@ -665,13 +678,16 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
           <option>Outra</option>
         </select>
       </div>
-      <div class="field"><label>Valor recebido (R$)</label>
-        <input id="fin-valor-rec" type="number" placeholder="Ex: 975.00" step="0.01">
+      <div class="field">
+        <label>Valor recebido</label>
+        <input id="fin-valor-rec" type="text" placeholder="R$ 0,00" oninput="mascaraMoeda(this)">
       </div>
-      <div class="field"><label>Data do recebimento</label>
+      <div class="field">
+        <label>Data do recebimento</label>
         <input id="fin-data-rec" type="date">
       </div>
-      <div class="field"><label>Forma de recebimento</label>
+      <div class="field">
+        <label>Forma de recebimento</label>
         <select id="fin-forma">
           <option>PIX</option>
           <option>Transferência bancária</option>
@@ -680,14 +696,16 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
           <option>Dinheiro</option>
         </select>
       </div>
-      <div class="field"><label>Status</label>
+      <div class="field">
+        <label>Status</label>
         <select id="fin-status">
           <option value="recebido">Recebido ✅</option>
           <option value="pendente">Pendente ⏳</option>
           <option value="atrasado">Atrasado ⚠️</option>
         </select>
       </div>
-      <div class="field"><label>Observação</label>
+      <div class="field">
+        <label>Observação</label>
         <input id="fin-obs" type="text" placeholder="Ex: aguardando compensação...">
       </div>
     </div>
@@ -696,7 +714,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
         <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-width="2.5"/></svg>
         Registrar pagamento
       </button>
-      <button class="btn btn-secondary" onclick="gerarCobranca()">Gerar mensagem de cobrança ↗</button>
+      <button class="btn btn-secondary" onclick="gerarCobranca()">Gerar cobrança ↗</button>
       <button class="btn btn-secondary" onclick="gerarRecibo()">Gerar recibo ↗</button>
     </div>
   </div>
@@ -1822,19 +1840,167 @@ function salvarPagamentos() {
 function preencherFinCliente() {
   const cnpj = document.getElementById('fin-cli').value;
   const c = clientes.find(cl => cl.cnpj === cnpj);
-  const inp = document.getElementById('fin-valor-total');
-  if (c && c.valor) {
-    inp.value = c.valor;
-  } else {
-    inp.value = '';
+  const infoBox = document.getElementById('fin-info-contrato');
+  const dadosBox = document.getElementById('fin-dados-box');
+  const parcelasAuto = document.getElementById('fin-parcelas-auto');
+  const parcelasLista = document.getElementById('fin-parcelas-lista');
+
+  if (!c) {
+    infoBox.style.display = 'none';
+    parcelasAuto.style.display = 'none';
+    return;
   }
+
+  // Mostrar dados do contrato
+  infoBox.style.display = 'block';
+  dadosBox.innerHTML =
+    '<strong>Empresa:</strong> ' + c.nome + ' &nbsp;·&nbsp; <strong>CNPJ:</strong> ' + c.cnpj + '<br>' +
+    '<strong>Valor total:</strong> ' + (c.valor||'não informado') + ' &nbsp;·&nbsp; <strong>Pagamento:</strong> ' + (c.pagamento||'não informado') + '<br>' +
+    '<strong>Prazo do laudo:</strong> ' + (c.prazoLaudo||'não informado') + ' &nbsp;·&nbsp; <strong>Data assinatura:</strong> ' + (c.dataAssinatura||'não informado');
+
+  // Gerar parcelas automaticamente com base na forma de pagamento
+  parcelasAuto.style.display = 'block';
+  var valorNum = parseFloat((c.valor||'0').replace(/[^\d,]/g,'').replace(',','.')) || 0;
+  var parcelas = gerarParcelasContrato(c, valorNum);
+
+  parcelasLista.innerHTML = parcelas.map(function(p) {
+    // Verificar se já foi pago
+    var pago = pagamentos.filter(function(pg) {
+      return pg.cnpj === cnpj && pg.parcela === p.label && pg.status === 'recebido';
+    }).length > 0;
+
+    var statusCls = pago ? 'b-ok' : (p.vencida ? 'b-err' : 'b-warn');
+    var statusTxt = pago ? 'Pago ✅' : (p.vencida ? 'Atrasado ⚠️' : 'Pendente ⏳');
+
+    return '<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--surface2);border-radius:var(--radius-sm);margin-bottom:6px">' +
+      '<div style="flex:1">' +
+        '<div style="font-size:13px;font-weight:600">' + p.label + '</div>' +
+        '<div style="font-size:11px;color:var(--text3)">' + p.desc + ' &nbsp;·&nbsp; Vencimento: ' + p.vencimento + '</div>' +
+      '</div>' +
+      '<div style="font-size:13px;font-weight:600;color:var(--text)">' + p.valorFmt + '</div>' +
+      '<span class="badge ' + statusCls + '">' + statusTxt + '</span>' +
+      (!pago ? '<button class="btn btn-success btn-sm" onclick="registrarParcelaRapido(\'' + cnpj + '\',\'' + p.label + '\',' + p.valor + ')">Marcar pago</button>' : '') +
+    '</div>';
+  }).join('');
+
+  // Preencher valor sugerido no campo manual
+  if (parcelas.length > 0) {
+    var proxima = parcelas.find(function(p) {
+      return !pagamentos.some(function(pg) { return pg.cnpj === cnpj && pg.parcela === p.label && pg.status === 'recebido'; });
+    });
+    if (proxima) {
+      document.getElementById('fin-parcela').value = proxima.label;
+      var vFmt = 'R$ ' + proxima.valor.toFixed(2).replace('.',',').replace(/(\d)(?=(\d{3})+(?!\d))/g,'$1.');
+      document.getElementById('fin-valor-rec').value = vFmt;
+    }
+  }
+}
+
+function gerarParcelasContrato(c, valorTotal) {
+  var pgto = c.pagamento || '';
+  var parcelas = [];
+  var hoje = new Date();
+  var dataAssin = c.dataAssinatura ? new Date(c.dataAssinatura) : hoje;
+
+  if (pgto.includes('50%') && pgto.includes('50%')) {
+    // 50% na assinatura + 50% na entrega
+    var v = valorTotal / 2;
+    var venc1 = new Date(dataAssin);
+    var venc2 = new Date(dataAssin);
+    venc2.setDate(venc2.getDate() + 30);
+    parcelas.push({
+      label: '1ª parcela (entrada)',
+      desc: '50% na assinatura do contrato',
+      valor: v,
+      valorFmt: 'R$ ' + v.toFixed(2).replace('.',',').replace(/(\d)(?=(\d{3})+(?!\d))/g,'$1.'),
+      vencimento: venc1.toLocaleDateString('pt-BR'),
+      vencida: venc1 < hoje
+    });
+    parcelas.push({
+      label: '2ª parcela (entrega)',
+      desc: '50% na entrega do laudo',
+      valor: v,
+      valorFmt: 'R$ ' + v.toFixed(2).replace('.',',').replace(/(\d)(?=(\d{3})+(?!\d))/g,'$1.'),
+      vencimento: venc2.toLocaleDateString('pt-BR'),
+      vencida: venc2 < hoje
+    });
+  } else if (pgto.includes('100%') && pgto.includes('assinatura')) {
+    parcelas.push({
+      label: 'Parcela única',
+      desc: '100% na assinatura do contrato',
+      valor: valorTotal,
+      valorFmt: 'R$ ' + valorTotal.toFixed(2).replace('.',',').replace(/(\d)(?=(\d{3})+(?!\d))/g,'$1.'),
+      vencimento: dataAssin.toLocaleDateString('pt-BR'),
+      vencida: dataAssin < hoje
+    });
+  } else if (pgto.includes('100%') && pgto.includes('entrega')) {
+    var venc = new Date(dataAssin);
+    venc.setDate(venc.getDate() + 30);
+    parcelas.push({
+      label: 'Parcela única',
+      desc: '100% na entrega do laudo',
+      valor: valorTotal,
+      valorFmt: 'R$ ' + valorTotal.toFixed(2).replace('.',',').replace(/(\d)(?=(\d{3})+(?!\d))/g,'$1.'),
+      vencimento: venc.toLocaleDateString('pt-BR'),
+      vencida: venc < hoje
+    });
+  } else if (pgto.includes('3x')) {
+    var v3 = valorTotal / 3;
+    for (var i = 0; i < 3; i++) {
+      var venc3 = new Date(dataAssin);
+      venc3.setDate(venc3.getDate() + (i * 30));
+      parcelas.push({
+        label: (i+1) + 'ª parcela',
+        desc: 'Parcela ' + (i+1) + '/3',
+        valor: v3,
+        valorFmt: 'R$ ' + v3.toFixed(2).replace('.',',').replace(/(\d)(?=(\d{3})+(?!\d))/g,'$1.'),
+        vencimento: venc3.toLocaleDateString('pt-BR'),
+        vencida: venc3 < hoje
+      });
+    }
+  } else {
+    // Padrão: parcela única
+    parcelas.push({
+      label: 'Parcela única',
+      desc: pgto || 'Conforme contrato',
+      valor: valorTotal,
+      valorFmt: 'R$ ' + valorTotal.toFixed(2).replace('.',',').replace(/(\d)(?=(\d{3})+(?!\d))/g,'$1.'),
+      vencimento: dataAssin.toLocaleDateString('pt-BR'),
+      vencida: dataAssin < hoje
+    });
+  }
+  return parcelas;
+}
+
+function registrarParcelaRapido(cnpj, parcela, valor) {
+  var c = clientes.find(function(cl){ return cl.cnpj === cnpj; });
+  var pag = {
+    id: Date.now(),
+    cnpj: cnpj,
+    nome: c ? c.nome : cnpj,
+    parcela: parcela,
+    valor: valor,
+    valorTotal: c ? c.valor : '',
+    data: new Date().toLocaleDateString('pt-BR'),
+    forma: 'PIX',
+    status: 'recebido',
+    obs: 'Registrado automaticamente',
+    registradoEm: new Date().toLocaleDateString('pt-BR'),
+  };
+  pagamentos.push(pag);
+  salvarPagamentos();
+  renderFinanceiro();
+  document.getElementById('fin-cli').value = cnpj;
+  preencherFinCliente();
+  toast('✓ Pagamento registrado!');
 }
 
 function registrarPagamento() {
   const cnpj = document.getElementById('fin-cli').value;
   if (!cnpj) { toast('Selecione um cliente'); return; }
   const c = clientes.find(cl => cl.cnpj === cnpj);
-  const val = parseFloat(document.getElementById('fin-valor-rec').value);
+  const valRaw = (document.getElementById('fin-valor-rec').value||'').replace(/[^\d,]/g,'').replace(',','.');
+  const val = parseFloat(valRaw) || 0;
   if (!val || val <= 0) { toast('Informe o valor recebido'); return; }
   const pag = {
     id: Date.now(),
