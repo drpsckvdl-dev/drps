@@ -1184,32 +1184,124 @@ function getDadosCliente(selectId) {
   return clientes.find(c => c.cnpj === cnpj) || null;
 }
 
+
 function gerarContrato() {
-  const c = getDadosCliente('sel-cliente-cont');
+  var c = getDadosCliente('sel-cliente-cont');
   if (!c) { toast('Selecione um cliente primeiro'); return; }
-  const sets = (c.setores||'').split('\n').filter(s=>s.trim());
-  setStatus(c.cnpj, 'contrato');
-  renderDash();
-  const load = document.getElementById('cont-load');
+
+  var sets = (c.setores||'').split('\n').filter(function(s){ return s.trim(); });
+  var hoje = c.dataAssinatura || new Date().toLocaleDateString('pt-BR');
+  var btnGerar = document.getElementById('btn-gerar-cont');
+  var load = document.getElementById('cont-load');
+  var resultado = document.getElementById('cont-resultado');
+  var contContent = document.getElementById('cont-content');
+  var btnCopiar = document.getElementById('btn-copiar-cont');
+  var btnImpr = document.getElementById('btn-impr-cont');
+
   load.style.display = 'flex';
-  setTimeout(() => load.style.display = 'none', 2000);
-  const prompt = `Gere o CONTRATO COMPLETO de Prestação de Serviços DRPS seguindo exatamente o modelo do Pirilampos com TODAS as 8 cláusulas e o Anexo I. Use os dados:
+  resultado.style.display = 'none';
+  if(btnCopiar) btnCopiar.style.display = 'none';
+  if(btnImpr) btnImpr.style.display = 'none';
+  btnGerar.disabled = true;
+  btnGerar.textContent = 'Gerando...';
 
-CONTRATANTE: ${c.nome} | CNPJ: ${c.cnpj} | Endereço: ${c.endereco||'não informado'}
-Representante: ${c.responsavel||'—'} | CPF: ${c.cpfResp||'—'} | E-mail: ${c.email||'—'} | Tel: ${c.tel||'—'}
+  var etapasAnexo = sets.map(function(s,i){ return '   '+(i+1)+'. '+s.trim(); }).join('\n');
 
-CONTRATADO: VDL Gestão & Estratégia | CNPJ: 65.425.722/0001-33
-Vanessa Sampaio Sorrilha | CPF: 831.584.135-15
+  var contrato =
+'CONTRATO DE PRESTAÇÃO DE SERVIÇOS\n'+
+'DIAGNÓSTICO DE RISCOS PSICOSSOCIAIS — DRPS | NR-1\n'+
+'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n'+
+'Pelo presente instrumento particular, as partes abaixo qualificadas têm entre si justo e contratado o seguinte:\n\n'+
+'CONTRATANTE:\n'+
+'Razão Social: '+c.nome+'\n'+
+'CNPJ: '+c.cnpj+'\n'+
+'Endereço: '+(c.endereco||'a preencher')+'\n'+
+'Representante Legal: '+(c.responsavel||'a preencher')+'\n'+
+'Cargo: '+(c.cargo||'a preencher')+'\n'+
+'CPF: '+(c.cpfResp||'a preencher')+'\n'+
+'E-mail: '+(c.email||'a preencher')+'\n'+
+'Telefone: '+(c.tel||'a preencher')+'\n\n'+
+'CONTRATADA:\n'+
+'Razão Social: VDL Gestão & Estratégia\n'+
+'CNPJ: 65.425.722/0001-33\n'+
+'Representante Legal: Vanessa Sampaio Sorrilha\n'+
+'CPF: 831.584.135-15\n\n'+
+'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n'+
+'CLÁUSULA 1ª — DO OBJETO\n\n'+
+'O presente contrato tem como objeto a prestação de serviços de Diagnóstico de Riscos Psicossociais (DRPS), conforme exigido pela NR-1 (Portaria MTE nº 1.419/2024), compreendendo:\n'+
+'a) Aplicação de instrumento diagnóstico (questionário estruturado) junto aos colaboradores da CONTRATANTE;\n'+
+'b) Análise quantitativa e qualitativa dos dados coletados;\n'+
+'c) Classificação dos riscos conforme Matriz de Risco NR-01;\n'+
+'d) Elaboração e entrega de Laudo Técnico de Riscos Psicossociais por setor, com validade jurídica para integração ao PGR.\n\n'+
+'A prestação de serviços abrangerá '+(c.colaboradores||'?')+' colaboradores, distribuídos nos seguintes setores:\n'+
+etapasAnexo+'\n\n'+
+'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n'+
+'CLÁUSULA 2ª — DA DURAÇÃO\n\n'+
+'O presente contrato terá vigência a partir da data de sua assinatura, encerrando-se com a entrega do Laudo Técnico, prevista em '+(c.prazoLaudo||'7 dias úteis após a coleta de dados')+'.\n\n'+
+'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n'+
+'CLÁUSULA 3ª — DO INVESTIMENTO E PAGAMENTO\n\n'+
+'Pelos serviços prestados, a CONTRATANTE pagará à CONTRATADA o valor de '+(c.valor||'a combinar')+', nas seguintes condições:\n'+
+'Forma de pagamento: '+(c.pagamento||'a combinar')+'\n\n'+
+'§1º Em caso de atraso no pagamento, incidirão multa de 2% sobre o valor devido, acrescidos de juros de 1% ao mês e correção monetária pelo IPCA.\n\n'+
+'§2º A CONTRATANTE autoriza o uso de seu nome e CNPJ para fins de cobrança judicial em caso de inadimplência superior a 30 dias.\n\n'+
+'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n'+
+'CLÁUSULA 4ª — DAS OBRIGAÇÕES DAS PARTES\n\n'+
+'São obrigações da CONTRATADA:\n'+
+'a) Executar os serviços com excelência técnica, dentro dos prazos acordados;\n'+
+'b) Manter sigilo absoluto sobre as informações obtidas;\n'+
+'c) Garantir o anonimato dos colaboradores participantes do diagnóstico;\n'+
+'d) Entregar o Laudo Técnico devidamente fundamentado e assinado.\n\n'+
+'São obrigações da CONTRATANTE:\n'+
+'a) Efetuar os pagamentos nos prazos e condições estipulados;\n'+
+'b) Viabilizar o acesso aos colaboradores para participação no questionário;\n'+
+'c) Comunicar internamente a realização do diagnóstico;\n'+
+'d) Garantir taxa mínima de 70% de respondentes por setor avaliado;\n'+
+'e) Fornecer as informações organizacionais necessárias.\n\n'+
+'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n'+
+'CLÁUSULA 5ª — DA CONFIDENCIALIDADE E LGPD\n\n'+
+'Todas as informações são consideradas sigilosas. As partes comprometem-se a tratar os dados pessoais em conformidade com a Lei 13.709/2018 (LGPD), garantindo o anonimato dos respondentes e o uso das informações exclusivamente para a finalidade do diagnóstico contratado.\n\n'+
+'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n'+
+'CLÁUSULA 6ª — DO USO DE IMAGEM E REFERÊNCIA COMERCIAL\n\n'+
+'A CONTRATANTE autoriza a CONTRATADA a mencionar seu nome como cliente em materiais de divulgação, preservando o sigilo sobre os resultados do diagnóstico.\n\n'+
+'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n'+
+'CLÁUSULA 7ª — DA RESCISÃO\n\n'+
+'O presente contrato poderá ser rescindido por qualquer das partes mediante notificação prévia de 15 dias:\n'+
+'a) Rescisão por iniciativa da CONTRATANTE após início dos serviços: multa de 20% sobre o valor total, além do pagamento proporcional pelos serviços já prestados;\n'+
+'b) Rescisão por iniciativa da CONTRATADA: devolução proporcional dos valores recebidos referentes aos serviços não prestados.\n\n'+
+'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n'+
+'CLÁUSULA 8ª — DAS DISPOSIÇÕES GERAIS\n\n'+
+'a) Este contrato representa a totalidade do acordo entre as partes;\n'+
+'b) Qualquer alteração somente terá validade se feita por escrito e assinada por ambas as partes;\n'+
+'c) Este contrato é regido pelas leis brasileiras.\n\n'+
+'As partes elegem o foro da comarca de Guarulhos/SP para dirimir quaisquer controvérsias.\n\n'+
+'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n'+
+'ANEXO I — ETAPAS DO TRABALHO\n\n'+
+'Etapa 1 — Alinhamento inicial\nReunião com os responsáveis para apresentação da metodologia e planejamento.\n\n'+
+'Etapa 2 — Coleta de dados\nAplicação do questionário DRPS anônimo para os setores: '+sets.join(', ')+'. Prazo: 5 a 10 dias úteis.\n\n'+
+'Etapa 3 — Análise técnica\nAnálise quantitativa e qualitativa com classificação dos riscos conforme Matriz NR-01.\n\n'+
+'Etapa 4 — Elaboração do laudo\nLaudo Técnico com análise por setor, 13 eixos FRPRT e tabela de recomendações.\n\n'+
+'Etapa 5 — Entrega e apresentação\nReunião de apresentação e entrega do Laudo assinado pronto para o PGR.\n\n'+
+'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n'+
+'Por estarem assim justas e contratadas, as partes assinam em 2 (duas) vias de igual teor.\n\n'+
+'Local e data: Guarulhos/SP, '+hoje+'\n\n\n'+
+'________________________________________\n'+
+'CONTRATANTE\n'+c.nome+'\nCNPJ: '+c.cnpj+'\n'+(c.responsavel||'Representante Legal')+' — '+(c.cargo||'')+
+'\nCPF: '+(c.cpfResp||'___________________')+'\n\n\n'+
+'________________________________________\n'+
+'CONTRATADA\nVDL Gestão & Estratégia\nCNPJ: 65.425.722/0001-33\nVanessa Sampaio Sorrilha\nCPF: 831.584.135-15';
 
-OBJETO: Diagnóstico de Riscos Psicossociais (DRPS) + Laudo Técnico por setor para PGR — NR-1
-COLABORADORES: ${c.colaboradores||'?'} | SETORES: ${sets.join(', ')}
-VALOR: ${c.valor||'a combinar'} | PAGAMENTO: ${c.pagamento||'—'}
-PRAZO DO LAUDO: ${c.prazoLaudo||'—'} | DATA: ${c.dataAssinatura||new Date().toLocaleDateString('pt-BR')}
-FORO: Guarulhos/SP
-
-Gere o contrato completo formatado, com todas as cláusulas do modelo Pirilampos adaptadas para este cliente, e o Anexo I com as etapas do trabalho (etapas 1 a 5) personalizadas com os setores listados.`;
-  window.open('https://claude.ai/chat?q=' + encodeURIComponent(prompt).substring(0,2000), '_blank');
-  toast('Abrindo Claude para gerar o contrato...');
+  setTimeout(function() {
+    load.style.display = 'none';
+    contContent.textContent = contrato;
+    resultado.style.display = 'block';
+    if(btnCopiar){ btnCopiar.style.display = 'inline-flex'; }
+    if(btnImpr){ btnImpr.style.display = 'inline-flex'; }
+    btnGerar.disabled = false;
+    btnGerar.innerHTML = '<svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" stroke-width="2"/></svg> Gerar contrato completo';
+    setStatus(c.cnpj, 'contrato');
+    renderDash();
+    toast('Contrato gerado com sucesso!');
+  }, 600);
 }
 
 function gerarAnexo() {
