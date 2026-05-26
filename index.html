@@ -906,8 +906,19 @@ function salvarCliente() {
   const sets = (cliente.setores||'').split('\n').filter(s=>s.trim());
   const prompt = `Gere uma proposta comercial completa e profissional para:\n\nEmpresa: ${cliente.nome}\nCNPJ: ${cliente.cnpj}\nSetor de atividade: ${cliente.atividade||'não informado'}\nResponsável: ${cliente.responsavel||'não informado'} (${cliente.cargo||''})\nE-mail: ${cliente.email||'não informado'}\nTotal de colaboradores: ${cliente.colaboradores||'não informado'}\nSetores a avaliar: ${sets.join(', ')||'não informado'}\nValor negociado: ${cliente.valor||'a definir'}\nForma de pagamento: ${cliente.pagamento||'a combinar'}\nPrazo do laudo: ${cliente.prazoLaudo||'a combinar'}\n\nInclua:\n1. Apresentação da proposta (contexto NR-1 e urgência legal)\n2. Escopo do serviço (Projeto Essencial — diagnóstico + laudo)\n3. Metodologia resumida (13 eixos, questionário anônimo, laudo técnico)\n4. Cronograma proposto\n5. Investimento e forma de pagamento\n6. Diferenciais do serviço\n7. Próximos passos (assinatura do contrato)\n\nFormato: documento profissional pronto para enviar por e-mail.\nAssinar como Cinthia Kliman & VDL Gestão e Estratégia.\nContatos: cinthiakliman@gmail.com / vdl.vs.contato@gmail.com / (11) 97824-7337`;
 
-  toast('✓ Cliente salvo com sucesso!');
+  salvar();
   renderDash();
+  toast('✓ Cliente salvo!');
+  // Avisar sobre pasta no Drive após 1 segundo
+  setTimeout(function() {
+    var nomeCliente = document.getElementById('f-nome').value.trim();
+    var cnpjCliente = document.getElementById('f-cnpj').value.trim();
+    var keyDrive = 'drps_drive_' + nomeCliente.replace(/\s+/g,'_');
+    if (!localStorage.getItem(keyDrive)) {
+      var criar = confirm('✅ Cliente salvo!\n\n📁 Deseja criar a pasta no Google Drive agora?\n\n(Recomendado para organizar contratos, laudos e documentos do cliente)');
+      if (criar) criarEstruturaDrive(nomeCliente, cnpjCliente);
+    }
+  }, 800);
 }
 
 // ═══════════════════════════════════════════════════
@@ -1549,6 +1560,7 @@ function abrirFichaCliente(c) {
     {label:'Gerar laudo', fn: function(){ overlay.remove(); nav('laudo',null); document.getElementById('sel-cli-laudo').value=c.cnpj; }},
     {label:'Financeiro', fn: function(){ overlay.remove(); nav('financeiro',null); document.getElementById('fin-cli').value=c.cnpj; preencherFinCliente(); }},
     {label:'Editar dados', fn: function(){ overlay.remove(); editarCliente(c.cnpj); }},
+    {label:'📁 Pasta no Drive', fn: function(){ criarEstruturaDrive(c.nome, c.cnpj); }},
     {label:'Atualizar etapa', fn: function(){ marcarEtapaFicha(c.cnpj, overlay); }},
   ];
 
