@@ -594,7 +594,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 
     <div class="section-label">Responsáveis técnicos</div>
     <div class="form-grid">
-      <div class="field"><label>Responsável técnico 1</label><input id="l-rt1" value="Cinthia Kliman Benedito"></div>
+      <div class="field"><label>Responsável técnico 1</label><input id="l-rt1" value="Cintia Luciana Kliman Bendito"></div>
       <div class="field"><label>CPF</label><input id="l-cpf1" value="295.579.438-40"></div>
       <div class="field"><label>Responsável técnico 2</label><input id="l-rt2" value="Vanessa Sampaio Sorrilha"></div>
       <div class="field"><label>CPF</label><input id="l-cpf2" value="831.584.135-15"></div>
@@ -1221,11 +1221,23 @@ function gerarContrato() {
 'CPF: '+(c.cpfResp||'a preencher')+'\n'+
 'E-mail: '+(c.email||'a preencher')+'\n'+
 'Telefone: '+(c.tel||'a preencher')+'\n\n'+
-'CONTRATADA:\n'+
-'Razão Social: VDL Gestão & Estratégia\n'+
+'CONTRATADAS:\n\n'+
+'1. VDL Gestão & Estratégia\n'+
+'Razão Social: Vanessa Sampaio Sorrilha\n'+
 'CNPJ: 65.425.722/0001-33\n'+
-'Representante Legal: Vanessa Sampaio Sorrilha\n'+
-'CPF: 831.584.135-15\n\n'+
+'Sede: Rua Dona Tecla, 230, T4-46, Jardim Flor da Montanha, Guarulhos/SP — CEP: 07097-380\n'+
+'Representante: Vanessa Sampaio Sorrilha (Sócia Administradora)\n'+
+'CPF: 831.584.135-15\n'+
+'E-mail: vdl.vs.contato@gmail.com\n'+
+'Telefone: (11) 98983-6517\n\n'+
+'2. Casa da Madrinha Espaço de Terapias Integrativas Ltda\n'+
+'CNPJ: 48.697.218/0001-73\n'+
+'Sede: Av. Barber Greene, 664, Guarulhos/SP\n'+
+'Representante: Cintia Luciana Kliman Bendito (Sócia Administradora)\n'+
+'CPF: 295.579.438-40\n'+
+'Residente: Rua Noel Rosa, 363, Jd. Paraventi, Guarulhos/SP — CEP: 07120-050\n'+
+'E-mail: cinthiakliman@gmail.com\n'+
+'Telefone: (11) 97824-7337\n\n'+
 '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n'+
 'CLÁUSULA 1ª — DO OBJETO\n\n'+
 'O presente contrato tem como objeto a prestação de serviços de Diagnóstico de Riscos Psicossociais (DRPS), conforme exigido pela NR-1 (Portaria MTE nº 1.419/2024), compreendendo:\n'+
@@ -1288,7 +1300,25 @@ etapasAnexo+'\n\n'+
 'CONTRATANTE\n'+c.nome+'\nCNPJ: '+c.cnpj+'\n'+(c.responsavel||'Representante Legal')+' — '+(c.cargo||'')+
 '\nCPF: '+(c.cpfResp||'___________________')+'\n\n\n'+
 '________________________________________\n'+
-'CONTRATADA\nVDL Gestão & Estratégia\nCNPJ: 65.425.722/0001-33\nVanessa Sampaio Sorrilha\nCPF: 831.584.135-15';
+'CONTRATADA — 1\n'+
+'VDL Gestão & Estratégia\n'+
+'CNPJ: 65.425.722/0001-33\n'+
+'Vanessa Sampaio Sorrilha\n'+
+'CPF: 831.584.135-15\n'+
+'E-mail: vdl.vs.contato@gmail.com\n'+
+'Telefone: (11) 98983-6517\n\n\n'+
+'________________________________________\n'+
+'CONTRATADA — 2\n'+
+'Casa da Madrinha Espaço de Terapias Integrativas Ltda\n'+
+'CNPJ: 48.697.218/0001-73\n'+
+'Cintia Luciana Kliman Bendito\n'+
+'CPF: 295.579.438-40\n'+
+'E-mail: cinthiakliman@gmail.com\n'+
+'Telefone: (11) 97824-7337\n\n\n'+
+'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n'+
+'TESTEMUNHAS:\n\n'+
+'1. Nome: _______________________________ CPF: ___________________\n\n'+
+'2. Nome: _______________________________ CPF: ___________________';
 
   setTimeout(function() {
     load.style.display = 'none';
