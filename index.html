@@ -397,8 +397,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
         <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" stroke-width="2"/></svg>
         Salvar cliente
       </button>
-      <button class="btn btn-secondary" onclick="gerarProposta()">Gerar proposta ↗</button>
-      <button class="btn btn-secondary" onclick="gerarEmailBV()">E-mail boas-vindas ↗</button>
+      <button class="btn btn-secondary" onclick="gerarEmailBV()">
+        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke-width="2"/></svg>
+        Gerar e-mail de boas-vindas
+      </button>
     </div>
   </div>
 
@@ -1346,9 +1348,120 @@ function gerarProposta() {
 }
 
 function gerarEmailBV() {
-  const nome = document.getElementById('f-nome').value || '[empresa]';
-  const prompt = `Gere um e-mail de boas-vindas para o cliente "${nome}" confirmando o início do processo DRPS NR-1. Explique as 7 etapas do processo de forma simples e solicite a assinatura do contrato. Assinar como Cinthia Kliman & VDL Gestão e Estratégia.`;
-  navigator.clipboard.writeText(prompt).then(() => toast('Prompt copiado!')).catch(() => {});
+  const nome = document.getElementById('f-nome').value || '[Nome da empresa]';
+  const resp = document.getElementById('f-resp').value || '[Responsável]';
+  const colab = document.getElementById('f-colab').value || '?';
+  const sets = (document.getElementById('f-setores').value||'').split('\n').filter(s=>s.trim());
+  const valor = document.getElementById('f-valor').value || 'a confirmar';
+  const pgto = document.getElementById('f-pgto').value || 'a confirmar';
+  const prazo = document.getElementById('f-prazo').value || '7 dias úteis após coleta';
+  const hoje = new Date().toLocaleDateString('pt-BR');
+
+  const email = `Assunto: Bem-vindo(a) ao Programa DRPS NR-1 — ${nome}
+
+Olá, ${resp}!
+
+É com muita satisfação que damos as boas-vindas à ${nome} ao nosso programa de Diagnóstico de Riscos Psicossociais (DRPS), em conformidade com a NR-1 (Portaria MTE nº 1.419/2024).
+
+Estamos animadas em iniciar esta jornada com vocês e comprometidas em entregar um diagnóstico técnico de qualidade, que contribuirá para a saúde e o bem-estar dos colaboradores.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 RESUMO DO PROJETO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Empresa: ${nome}
+• Colaboradores: ${colab}
+• Setores avaliados: ${sets.join(', ')||'a confirmar'}
+• Investimento: ${valor}
+• Pagamento: ${pgto}
+• Prazo de entrega do laudo: ${prazo}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🗓 PRÓXIMAS ETAPAS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1️⃣ ASSINATURA DO CONTRATO
+   Encaminharemos o contrato para assinatura digital em breve.
+   Nenhuma etapa se inicia antes da formalização.
+
+2️⃣ COMUNICAÇÃO INTERNA
+   Após o contrato assinado, vocês comunicam os colaboradores
+   sobre o questionário anônimo que será enviado.
+
+3️⃣ COLETA DE DADOS
+   Os colaboradores respondem o questionário online (10-15 min),
+   totalmente anônimo e em conformidade com a LGPD.
+   Prazo: 5 a 10 dias úteis.
+
+4️⃣ ANÁLISE E ELABORAÇÃO DO LAUDO
+   Nossa equipe técnica analisa os dados e elabora o laudo
+   conforme os parâmetros da NR-1.
+
+5️⃣ ENTREGA DO LAUDO
+   Reunião de apresentação dos resultados e entrega do
+   documento técnico assinado — pronto para integrar ao PGR.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Qualquer dúvida, estamos à disposição!
+
+Com carinho,
+
+Cinthia Kliman
+Especialista em Saúde Emocional
+📱 (11) 97824-7337
+📧 cinthiakliman@gmail.com
+📸 @cinthiakliman
+
+Vanessa Sampaio Sorrilha
+Gestão & Estratégia — VDL
+📱 (11) 98983-6517
+📧 vdl.vs.contato@gmail.com
+📸 @vdl.vs
+
+Data: ${hoje}`;
+
+  // Mostra o e-mail numa modal
+  mostrarEmailModal(email);
+}
+
+function mostrarEmailModal(email) {
+  // Cria overlay temporário
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  
+  const modal = document.createElement('div');
+  modal.style.cssText = 'background:var(--surface);border-radius:var(--radius-lg);padding:24px;max-width:640px;width:100%;max-height:85vh;display:flex;flex-direction:column;gap:14px;box-shadow:0 20px 60px rgba(0,0,0,0.3)';
+  
+  modal.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:15px;font-weight:600">E-mail de boas-vindas</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:2px">Pronto para copiar e enviar</div>
+      </div>
+      <button onclick="this.closest('.email-overlay').remove()" style="border:none;background:none;cursor:pointer;font-size:22px;color:var(--text3);line-height:1">×</button>
+    </div>
+    <textarea style="
+      flex:1;min-height:380px;font-family:var(--mono);font-size:12px;
+      line-height:1.7;padding:14px;border:1px solid var(--border);
+      border-radius:var(--radius-sm);background:var(--surface2);
+      color:var(--text);resize:none;outline:none
+    " id="email-preview-txt">${email}</textarea>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-primary" onclick="
+        navigator.clipboard.writeText(document.getElementById('email-preview-txt').value)
+        .then(()=>{this.textContent='✓ Copiado!';setTimeout(()=>this.innerHTML='<svg width=\'14\' height=\'14\' fill=\'none\' stroke=\'currentColor\' viewBox=\'0 0 24 24\'><path d=\'M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z\' stroke-width=\'2\'/></svg> Copiar e-mail',1500)})">
+        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" stroke-width="2"/></svg>
+        Copiar e-mail
+      </button>
+      <button class="btn btn-secondary" onclick="this.closest('.email-overlay').remove()">Fechar</button>
+    </div>`;
+  
+  overlay.className = 'email-overlay';
+  overlay.appendChild(modal);
+  overlay.addEventListener('click', e => { if(e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
 }
 
 function gerarNarrativa() {
