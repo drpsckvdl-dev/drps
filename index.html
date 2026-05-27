@@ -2475,9 +2475,13 @@ function baixarContratoDocx() {
   if (!c) { toast('Selecione um cliente primeiro'); return; }
   var sets = (c.setores||'').split('\n').filter(function(s){ return s.trim(); });
   var hoje = c.dataAssinatura || new Date().toLocaleDateString('pt-BR');
-  var nomeArq = 'Contrato_DRPS_' + c.nome.replace(/[^a-zA-Z0-9]/g,'_') + '.rtf';
-  var rtf = gerarRTFContrato(c, sets, hoje);
-  var blob = new Blob([rtf], { type: 'application/rtf' });
+  var nomeArq = 'Contrato_DRPS_' + (c.nome||'cliente').replace(/[^a-zA-Z0-9]/g,'_') + '.rtf';
+
+  var partes = montarPartesRTF(c, sets, hoje);
+  // Juntar todas as partes em um único RTF
+  var rtf = partes.join('');
+
+  var blob = new Blob([rtf], { type: 'text/rtf;charset=utf-8' });
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
   a.href = url;
@@ -2485,221 +2489,198 @@ function baixarContratoDocx() {
   document.body.appendChild(a);
   a.click();
   setTimeout(function() { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
-  toast('Contrato baixado! Abra no Word normalmente.');
+  toast('\u2713 Contrato baixado! Abra no Word.');
 }
 
-function rtfEsc(txt) {
+function rtfT(txt) {
+  // Converte texto para RTF safe
   if (!txt) return '';
-  var result = '';
+  var r = '';
   for (var i = 0; i < txt.length; i++) {
     var code = txt.charCodeAt(i);
-    if (code === 92) result += '\\\\';
-    else if (code === 123) result += '\\{';
-    else if (code === 125) result += '\\}';
-    else if (code > 127) {
-      result += '\\u' + code + '?';
-    } else {
-      result += txt[i];
-    }
+    if (txt[i] === '\\') r += '\\\\';
+    else if (txt[i] === '{') r += '\\{';
+    else if (txt[i] === '}') r += '\\}';
+    else if (code > 127) r += '\\u' + code + '?';
+    else r += txt[i];
   }
-  return result;
+  return r;
 }
 
-function rtfLinha(txt, bold, size, cor, align) {
-  var s = size || 24;
-  var a = align === 'center' ? '\\qc' : (align === 'right' ? '\\qr' : '\\ql');
-  var b = bold ? '\\b' : '';
-  var c = cor ? '\\cf' + cor : '\\cf0';
-  return '{\\pard ' + a + ' ' + c + b + '\\fs' + s + ' ' + rtfEsc(txt) + '\\par}\n';
+function rp(txt, opts) {
+  // Render paragraph RTF
+  opts = opts || {};
+  var align = opts.center ? '\\qc' : (opts.right ? '\\qr' : '\\ql');
+  var bold = opts.bold ? '\\b ' : '';
+  var boldEnd = opts.bold ? ' \\b0' : '';
+  var size = '\\fs' + (opts.size || 22);
+  var indent = opts.indent ? '\\li' + opts.indent : '';
+  var sb = opts.sb ? '\\sb' + opts.sb : '';
+  return '{\\pard' + align + sb + indent + ' ' + size + ' ' + bold + rtfT(txt) + boldEnd + '\\par}\n';
 }
 
-function rtfEspaco(n) {
-  return '{\\pard\\sb' + (n||200) + '\\par}\n';
-}
+function montarPartesRTF(c, sets, hoje) {
+  var P = []; // partes do RTF
 
-function rtfDivisor() {
-  return '{\\pard\\brdrb\\brdrs\\brdrw10\\brdrcf2\\sb200\\sb200\\par}\n';
-}
+  // Cabeçalho RTF
+  P.push('{\\rtf1\\ansi\\ansicpg1252\\deff0\n');
+  P.push('{\\fonttbl{\\f0\\fswiss\\fcharset0 Arial;}}\n');
+  P.push('{\\colortbl;\\red26\green58\blue92;\red102\green102\blue102;}\n');
+  P.push('\\paperw11906\\paperh16838\\margl1134\\margr1134\\margt1134\\margb1134\n');
+  P.push('\\f0\\widowctrl\n');
 
-function rtfCampo(label, valor) {
-  return '{\\pard\\ql\\fs22\\cf1\\b ' + rtfEsc(label) + ':\\b0\\cf0  ' + rtfEsc(valor||'—') + '\\par}\n';
-}
-
-function rtfClausula(num, nome) {
-  return '{\\pard\\ql\\sb200\\cf1\\b\\fs26 ' + rtfEsc(num + ' \u2014 ' + nome) + '\\b0\\par}\n';
-}
-
-function rtfAlinea(letra, txt) {
-  return '{\\pard\\ql\\li360\\fs22\\b ' + rtfEsc(letra + ')') + '\\b0  ' + rtfEsc(txt) + '\\par}\n';
-}
-
-function gerarRTFContrato(c, sets, hoje) {
-  var s = sets || [];
-
-  var rtf = '{\\rtf1\\ansi\\ansicpg1252\\deff0\n';
-  rtf += '{\\fonttbl{\\f0\\froman\\fcharset0 Arial;}}\n';
-  rtf += '{\\colortbl;\\red26\\green58\\blue92;\\red150\\blue150;\\red33\\green33\\blue33;}\n';
-  rtf += '{\\info{\\title Contrato DRPS}}\n';
-  rtf += '\\paperw11906\\paperh16838\\margl1134\\margr1134\\margt1134\\margb1134\n';
-  rtf += '\\widowctrl\\hyphauto\n';
-
-  // TÍTULO
-  rtf += rtfEspaco(400);
-  rtf += '{\\pard\\qc\\cf1\\b\\fs36 ' + rtfEsc('CONTRATO DE PRESTAÇÃO DE SERVIÇOS') + '\\b0\\par}\n';
-  rtf += '{\\pard\\qc\\cf1\\b\\fs28 ' + rtfEsc('DIAGNÓSTICO DE RISCOS PSICOSSOCIAIS \u2014 DRPS') + '\\b0\\par}\n';
-  rtf += '{\\pard\\qc\\cf2\\fs22 ' + rtfEsc('NR-1 | Portaria MTE n\u00ba 1.419/2024') + '\\par}\n';
-  rtf += rtfDivisor();
-
-  // INTRO
-  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc('Pelo presente instrumento particular, as partes abaixo qualificadas têm entre si justo e contratado o seguinte:') + '\\par}\n';
-  rtf += rtfEspaco(200);
+  // Título
+  P.push('{\\pard\\qc\\sb400\\cf1\\b\\fs34 ' + rtfT('CONTRATO DE PREST' + String.fromCharCode(199) + String.fromCharCode(195) + 'O DE SERVI' + String.fromCharCode(199) + 'OS') + '\\b0\\par}\n');
+  P.push('{\\pard\\qc\\cf1\\b\\fs26 ' + rtfT('DIAGN' + String.fromCharCode(211) + 'STICO DE RISCOS PSICOSSOCIAIS') + '\\b0\\par}\n');
+  P.push('{\\pard\\qc\\fs20 NR-1 | Portaria MTE n' + String.fromCharCode(186) + ' 1.419/2024\\par}\n');
+  P.push('{\\pard\\brdrb\\brdrs\\brdrw15\\brdrcf1\\sb100\\par}\n');
 
   // CONTRATANTE
-  rtf += '{\\pard\\ql\\cf1\\b\\fs26 ' + rtfEsc('CONTRATANTE') + '\\b0\\par}\n';
-  rtf += rtfCampo('Razão Social', c.nome);
-  rtf += rtfCampo('CNPJ', c.cnpj);
-  rtf += rtfCampo('Endereço', c.endereco);
-  rtf += rtfCampo('Representante Legal', (c.responsavel||'') + (c.cargo ? ' \u2014 ' + c.cargo : ''));
-  rtf += rtfCampo('CPF', c.cpfResp);
-  rtf += rtfCampo('E-mail', c.email);
-  rtf += rtfCampo('Telefone', c.tel);
-  rtf += rtfEspaco(200);
+  P.push('{\\pard\\ql\\sb200\\cf1\\b\\fs26 CONTRATANTE\\b0\\par}\n');
+  function campo(label, val) {
+    P.push('{\\pard\\ql\\fs22\\b ' + rtfT(label) + ':\\b0  ' + rtfT(val||'--') + '\\par}\n');
+  }
+  campo('Raz' + String.fromCharCode(227) + 'o Social', c.nome);
+  campo('CNPJ', c.cnpj);
+  campo('Endere' + String.fromCharCode(231) + 'o', c.endereco);
+  campo('Representante', (c.responsavel||'') + (c.cargo ? ' - ' + c.cargo : ''));
+  campo('CPF', c.cpfResp);
+  campo('E-mail', c.email);
+  campo('Telefone', c.tel);
 
   // CONTRATADA 1
-  rtf += '{\\pard\\ql\\cf1\\b\\fs26 ' + rtfEsc('CONTRATADA 1 \u2014 VDL Gestão & Estratégia') + '\\b0\\par}\n';
-  rtf += rtfCampo('Razão Social', 'Vanessa Sampaio Sorrilha');
-  rtf += rtfCampo('CNPJ', '65.425.722/0001-33');
-  rtf += rtfCampo('Endereço', 'Rua Dona Tecla, 230, T4-46, Jardim Flor da Montanha, Guarulhos/SP \u2014 CEP: 07097-380');
-  rtf += rtfCampo('Representante', 'Vanessa Sampaio Sorrilha (Sócia Administradora)');
-  rtf += rtfCampo('CPF', '831.584.135-15');
-  rtf += rtfCampo('E-mail', 'vdl.vs.contato@gmail.com');
-  rtf += rtfCampo('Telefone', '(11) 98983-6517');
-  rtf += rtfEspaco(200);
+  P.push('{\\pard\\ql\\sb200\\cf1\\b\\fs26 CONTRATADA 1 - VDL Gest' + String.fromCharCode(227) + 'o & Estrat' + String.fromCharCode(233) + 'gia\\b0\\par}\n');
+  campo('Raz' + String.fromCharCode(227) + 'o Social', 'Vanessa Sampaio Sorrilha');
+  campo('CNPJ', '65.425.722/0001-33');
+  campo('Endere' + String.fromCharCode(231) + 'o', 'Rua Dona Tecla, 230, T4-46, Jardim Flor da Montanha, Guarulhos/SP');
+  campo('Representante', 'Vanessa Sampaio Sorrilha (S' + String.fromCharCode(243) + 'cia Administradora)');
+  campo('CPF', '831.584.135-15');
+  campo('E-mail', 'vdl.vs.contato@gmail.com');
+  campo('Telefone', '(11) 98983-6517');
 
   // CONTRATADA 2
-  rtf += '{\\pard\\ql\\cf1\\b\\fs26 ' + rtfEsc('CONTRATADA 2 \u2014 Casa da Madrinha Espaço de Terapias Integrativas Ltda') + '\\b0\\par}\n';
-  rtf += rtfCampo('CNPJ', '48.697.218/0001-73');
-  rtf += rtfCampo('Endereço', 'Av. Barber Greene, 664, Guarulhos/SP');
-  rtf += rtfCampo('Representante', 'Cintia Luciana Kliman Bendito (Sócia Administradora)');
-  rtf += rtfCampo('CPF', '295.579.438-40');
-  rtf += rtfCampo('End. residencial', 'Rua Noel Rosa, 363, Jd. Paraventi, Guarulhos/SP \u2014 CEP: 07120-050');
-  rtf += rtfCampo('E-mail', 'cinthiakliman@gmail.com');
-  rtf += rtfCampo('Telefone', '(11) 97824-7337');
-  rtf += rtfDivisor();
+  P.push('{\\pard\\ql\\sb200\\cf1\\b\\fs26 CONTRATADA 2 - Casa da Madrinha\\b0\\par}\n');
+  campo('CNPJ', '48.697.218/0001-73');
+  campo('Endere' + String.fromCharCode(231) + 'o', 'Av. Barber Greene, 664, Guarulhos/SP');
+  campo('Representante', 'Cintia Luciana Kliman Bendito (S' + String.fromCharCode(243) + 'cia Administradora)');
+  campo('CPF', '295.579.438-40');
+  campo('E-mail', 'cinthiakliman@gmail.com');
+  campo('Telefone', '(11) 97824-7337');
 
-  // CLÁUSULAS
-  rtf += rtfClausula('CLÁUSULA 1\u00aa', 'DO OBJETO');
-  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc('O presente contrato tem como objeto a prestação de serviços de Diagnóstico de Riscos Psicossociais (DRPS), conforme exigido pela NR-1 (Portaria MTE n\u00ba 1.419/2024), compreendendo:') + '\\par}\n';
-  rtf += rtfAlinea('a', 'Aplicação de instrumento diagnóstico (questionário estruturado) junto aos colaboradores da CONTRATANTE;');
-  rtf += rtfAlinea('b', 'Análise quantitativa e qualitativa dos dados coletados;');
-  rtf += rtfAlinea('c', 'Classificação dos riscos conforme Matriz de Risco NR-01;');
-  rtf += rtfAlinea('d', 'Elaboração e entrega de Laudo Técnico de Riscos Psicossociais por setor, com validade jurídica para integração ao PGR.');
-  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc('A prestação de serviços abrangerá ' + (c.colaboradores||'?') + ' colaboradores, nos setores:') + '\\par}\n';
-  s.forEach(function(st, i) {
-    rtf += '{\\pard\\ql\\li360\\fs22 ' + rtfEsc((i+1) + '. ' + st.trim()) + '\\par}\n';
+  P.push('{\\pard\\brdrb\\brdrs\\brdrw10\\sb200\\par}\n');
+
+  // CLAUSULAS
+  function clausula(num, nome) {
+    P.push('{\\pard\\ql\\sb240\\cf1\\b\\fs26 ' + rtfT(num + ' - ' + nome) + '\\b0\\par}\n');
+  }
+  function alinea(letra, txt) {
+    P.push('{\\pard\\ql\\li360\\fs22\\b ' + rtfT(letra + ')') + '\\b0  ' + rtfT(txt) + '\\par}\n');
+  }
+  function par(txt) {
+    P.push('{\\pard\\ql\\fs22 ' + rtfT(txt) + '\\par}\n');
+  }
+
+  clausula('CL' + String.fromCharCode(193) + 'USULA 1' + String.fromCharCode(170), 'DO OBJETO');
+  par('O presente contrato tem como objeto a presta' + String.fromCharCode(231) + String.fromCharCode(227) + 'o de servi' + String.fromCharCode(231) + 'os de Diagn' + String.fromCharCode(243) + 'stico de Riscos Psicossociais (DRPS), conforme NR-1 (Portaria MTE n' + String.fromCharCode(186) + ' 1.419/2024):');
+  alinea('a', 'Aplica' + String.fromCharCode(231) + String.fromCharCode(227) + 'o de instrument' + 'o diagn' + String.fromCharCode(243) + 'stico junto aos colaboradores;');
+  alinea('b', 'An' + String.fromCharCode(225) + 'lise quantitativa e qualitativa dos dados coletados;');
+  alinea('c', 'Classifica' + String.fromCharCode(231) + String.fromCharCode(227) + 'o dos riscos conforme Matriz de Risco NR-01;');
+  alinea('d', 'Elabora' + String.fromCharCode(231) + String.fromCharCode(227) + 'o e entrega de Laudo T' + String.fromCharCode(233) + 'cnico com validade jur' + String.fromCharCode(237) + 'dica para integra' + String.fromCharCode(231) + String.fromCharCode(227) + 'o ao PGR.');
+  par('Colaboradores: ' + (c.colaboradores||'?') + '. Setores:');
+  sets.forEach(function(st, i) {
+    P.push('{\\pard\\ql\\li360\\fs22 ' + rtfT((i+1) + '. ' + st) + '\\par}\n');
   });
 
-  rtf += rtfClausula('CLÁUSULA 2\u00aa', 'DA DURAÇÃO');
-  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc('O presente contrato terá vigência a partir da data de sua assinatura, encerrando-se com a entrega do Laudo Técnico, prevista em ' + (c.prazoLaudo||'7 dias úteis após a coleta') + '.') + '\\par}\n';
+  clausula('CL' + String.fromCharCode(193) + 'USULA 2' + String.fromCharCode(170), 'DA DURA' + String.fromCharCode(199) + String.fromCharCode(195) + 'O');
+  par('O presente contrato ter' + String.fromCharCode(225) + ' vig' + String.fromCharCode(234) + 'ncia a partir de sua assinatura, encerrando-se com a entrega do Laudo T' + String.fromCharCode(233) + 'cnico em ' + (c.prazoLaudo||'7 dias') + '.');
 
-  rtf += rtfClausula('CLÁUSULA 3\u00aa', 'DO INVESTIMENTO E PAGAMENTO');
-  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc('Pelos serviços prestados, a CONTRATANTE pagará às CONTRATADAS o valor total de ' + (c.valor||'a combinar') + '.') + '\\par}\n';
-  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc('Forma de pagamento: ' + (c.pagamento||'a combinar')) + '\\par}\n';
-  rtf += '{\\pard\\ql\\fs22\\sb80 ' + rtfEsc('\u00a71\u00ba Em caso de atraso, multa de 2%, juros de 1% ao mês e correção pelo IPCA.') + '\\par}\n';
-  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc('\u00a72\u00ba A CONTRATANTE autoriza uso do nome e CNPJ para cobrança judicial em caso de inadimplência superior a 30 dias.') + '\\par}\n';
+  clausula('CL' + String.fromCharCode(193) + 'USULA 3' + String.fromCharCode(170), 'DO INVESTIMENTO E PAGAMENTO');
+  par('Valor: ' + (c.valor||'a combinar') + ' | Pagamento: ' + (c.pagamento||'a combinar'));
+  par(String.fromCharCode(167) + '1' + String.fromCharCode(186) + ' Inadimpl' + String.fromCharCode(234) + 'ncia: multa 2%, juros 1%/m' + String.fromCharCode(234) + 's, corre' + String.fromCharCode(231) + String.fromCharCode(227) + 'o IPCA.');
+  par(String.fromCharCode(167) + '2' + String.fromCharCode(186) + ' CONTRATANTE autoriza cobran' + String.fromCharCode(231) + 'a judicial ap' + String.fromCharCode(243) + 's 30 dias de inadimpl' + String.fromCharCode(234) + 'ncia.');
 
-  rtf += rtfClausula('CLÁUSULA 4\u00aa', 'DAS OBRIGAÇÕES DAS PARTES');
-  rtf += '{\\pard\\ql\\b\\fs22 ' + rtfEsc('São obrigações das CONTRATADAS:') + '\\b0\\par}\n';
-  rtf += rtfAlinea('a', 'Executar os serviços com excelência técnica, dentro dos prazos acordados;');
-  rtf += rtfAlinea('b', 'Manter sigilo absoluto sobre as informações obtidas;');
-  rtf += rtfAlinea('c', 'Garantir o anonimato dos colaboradores participantes do diagnóstico;');
-  rtf += rtfAlinea('d', 'Entregar o Laudo Técnico devidamente fundamentado e assinado.');
-  rtf += '{\\pard\\ql\\b\\fs22 ' + rtfEsc('São obrigações da CONTRATANTE:') + '\\b0\\par}\n';
-  rtf += rtfAlinea('a', 'Efetuar os pagamentos nos prazos e condições estipulados;');
-  rtf += rtfAlinea('b', 'Viabilizar o acesso aos colaboradores para participação no questionário;');
-  rtf += rtfAlinea('c', 'Comunicar internamente a realização do diagnóstico;');
-  rtf += rtfAlinea('d', 'Garantir taxa mínima de 70% de respondentes por setor;');
-  rtf += rtfAlinea('e', 'Fornecer as informações organizacionais necessárias.');
+  clausula('CL' + String.fromCharCode(193) + 'USULA 4' + String.fromCharCode(170), 'DAS OBRIGA' + String.fromCharCode(199) + String.fromCharCode(213) + 'ES DAS PARTES');
+  P.push('{\\pard\\ql\\fs22\\b Obriga' + String.fromCharCode(231) + String.fromCharCode(245) + 'es das CONTRATADAS:\\b0\\par}\n');
+  alinea('a', 'Executar os servi' + String.fromCharCode(231) + 'os com excel' + String.fromCharCode(234) + 'ncia t' + String.fromCharCode(233) + 'cnica;');
+  alinea('b', 'Manter sigilo sobre as informa' + String.fromCharCode(231) + String.fromCharCode(245) + 'es obtidas;');
+  alinea('c', 'Garantir anonimato dos colaboradores;');
+  alinea('d', 'Entregar o Laudo T' + String.fromCharCode(233) + 'cnico assinado.');
+  P.push('{\\pard\\ql\\fs22\\b Obriga' + String.fromCharCode(231) + String.fromCharCode(245) + 'es da CONTRATANTE:\\b0\\par}\n');
+  alinea('a', 'Efetuar os pagamentos nos prazos estipulados;');
+  alinea('b', 'Viabilizar acesso dos colaboradores ao question' + String.fromCharCode(225) + 'rio;');
+  alinea('c', 'Comunicar internamente a realiza' + String.fromCharCode(231) + String.fromCharCode(227) + 'o do diagn' + String.fromCharCode(243) + 'stico;');
+  alinea('d', 'Garantir taxa m' + String.fromCharCode(237) + 'nima de 70% de respondentes por setor;');
+  alinea('e', 'Fornecer informa' + String.fromCharCode(231) + String.fromCharCode(245) + 'es organizacionais necess' + String.fromCharCode(225) + 'rias.');
 
-  rtf += rtfClausula('CLÁUSULA 5\u00aa', 'DA CONFIDENCIALIDADE E LGPD');
-  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc('As partes comprometem-se a tratar os dados pessoais conforme a Lei 13.709/2018 (LGPD), garantindo o anonimato dos respondentes e o uso das informações exclusivamente para a finalidade do diagnóstico.') + '\\par}\n';
+  clausula('CL' + String.fromCharCode(193) + 'USULA 5' + String.fromCharCode(170), 'CONFIDENCIALIDADE E LGPD');
+  par('As partes tratam dados pessoais conforme Lei 13.709/2018 (LGPD), garantindo anonimato dos respondentes e uso exclusivo para finalidade do diagn' + String.fromCharCode(243) + 'stico.');
 
-  rtf += rtfClausula('CLÁUSULA 6\u00aa', 'DO USO DE IMAGEM E REFERÊNCIA COMERCIAL');
-  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc('A CONTRATANTE autoriza as CONTRATADAS a mencionar seu nome em materiais de divulgação, preservando o sigilo dos resultados.') + '\\par}\n';
+  clausula('CL' + String.fromCharCode(193) + 'USULA 6' + String.fromCharCode(170), 'USO DE IMAGEM');
+  par('CONTRATANTE autoriza men' + String.fromCharCode(231) + String.fromCharCode(227) + 'o do seu nome em materiais de divulga' + String.fromCharCode(231) + String.fromCharCode(227) + 'o, preservando sigilo dos resultados.');
 
-  rtf += rtfClausula('CLÁUSULA 7\u00aa', 'DA RESCISÃO');
-  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc('O contrato poderá ser rescindido mediante notificação prévia de 15 dias:') + '\\par}\n';
-  rtf += rtfAlinea('a', 'Por iniciativa da CONTRATANTE após início dos serviços: multa de 20% sobre o valor total;');
-  rtf += rtfAlinea('b', 'Por iniciativa das CONTRATADAS: devolução proporcional dos valores recebidos.');
+  clausula('CL' + String.fromCharCode(193) + 'USULA 7' + String.fromCharCode(170), 'RESCIS' + String.fromCharCode(195) + 'O');
+  par('Rescis' + String.fromCharCode(227) + 'o mediante aviso pr' + String.fromCharCode(233) + 'vio de 15 dias:');
+  alinea('a', 'Por CONTRATANTE: multa de 20% sobre o valor total;');
+  alinea('b', 'Por CONTRATADAS: devolu' + String.fromCharCode(231) + String.fromCharCode(227) + 'o proporcional dos valores recebidos.');
 
-  rtf += rtfClausula('CLÁUSULA 8\u00aa', 'DAS DISPOSIÇÕES GERAIS');
-  rtf += rtfAlinea('a', 'Este contrato representa a totalidade do acordo entre as partes;');
-  rtf += rtfAlinea('b', 'Qualquer alteração somente terá validade se feita por escrito e assinada por ambas as partes;');
-  rtf += rtfAlinea('c', 'Este contrato é regido pelas leis brasileiras.');
-  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc('As partes elegem o foro da comarca de Guarulhos/SP para dirimir quaisquer controvérsias.') + '\\par}\n';
+  clausula('CL' + String.fromCharCode(193) + 'USULA 8' + String.fromCharCode(170), 'DISPOSI' + String.fromCharCode(199) + String.fromCharCode(213) + 'ES GERAIS');
+  alinea('a', 'Este contrato representa a totalidade do acordo entre as partes;');
+  alinea('b', 'Altera' + String.fromCharCode(231) + String.fromCharCode(245) + 'es somente por escrito e assinadas por ambas as partes;');
+  alinea('c', 'Regido pelas leis brasileiras. Foro: Guarulhos/SP.');
 
-  rtf += rtfDivisor();
+  P.push('{\\pard\\brdrb\\brdrs\\brdrw10\\sb200\\par}\n');
 
   // ANEXO I
-  rtf += '{\\pard\\ql\\cf1\\b\\fs28 ' + rtfEsc('ANEXO I \u2014 ETAPAS DO TRABALHO') + '\\b0\\par}\n';
+  P.push('{\\pard\\ql\\sb200\\cf1\\b\\fs28 ANEXO I - ETAPAS DO TRABALHO\\b0\\par}\n');
   var etapas = [
-    ['Etapa 1 \u2014 Alinhamento inicial', 'Reunião com os responsáveis para apresentação da metodologia e planejamento.'],
-    ['Etapa 2 \u2014 Coleta de dados', 'Aplicação do questionário DRPS anônimo para os setores: ' + s.join(', ') + '. Prazo: 5 a 10 dias úteis.'],
-    ['Etapa 3 \u2014 Análise técnica', 'Análise quantitativa e qualitativa com classificação dos riscos conforme Matriz NR-01.'],
-    ['Etapa 4 \u2014 Elaboração do laudo', 'Laudo Técnico com análise por setor, 13 eixos FRPRT e tabela de recomendações.'],
-    ['Etapa 5 \u2014 Entrega e apresentação', 'Reunião de apresentação e entrega do Laudo assinado pronto para o PGR.'],
+    ['Etapa 1 - Alinhamento inicial', 'Reuni' + String.fromCharCode(227) + 'o com os respons' + String.fromCharCode(225) + 'veis para apresenta' + String.fromCharCode(231) + String.fromCharCode(227) + 'o da metodologia e planejamento.'],
+    ['Etapa 2 - Coleta de dados', 'Question' + String.fromCharCode(225) + 'rio DRPS an' + String.fromCharCode(244) + 'nimo para os setores: ' + sets.join(', ') + '. Prazo: 5 a 10 dias ' + String.fromCharCode(250) + 'teis.'],
+    ['Etapa 3 - An' + String.fromCharCode(225) + 'lise t' + String.fromCharCode(233) + 'cnica', 'An' + String.fromCharCode(225) + 'lise quantitativa e qualitativa com classifica' + String.fromCharCode(231) + String.fromCharCode(227) + 'o dos riscos conforme Matriz NR-01.'],
+    ['Etapa 4 - Elabora' + String.fromCharCode(231) + String.fromCharCode(227) + 'o do laudo', 'Laudo T' + String.fromCharCode(233) + 'cnico com an' + String.fromCharCode(225) + 'lise por setor, 13 eixos FRPRT e tabela de recomenda' + String.fromCharCode(231) + String.fromCharCode(245) + 'es.'],
+    ['Etapa 5 - Entrega e apresenta' + String.fromCharCode(231) + String.fromCharCode(227) + 'o', 'Reuni' + String.fromCharCode(227) + 'o de apresenta' + String.fromCharCode(231) + String.fromCharCode(227) + 'o e entrega do Laudo assinado pronto para o PGR.'],
   ];
   etapas.forEach(function(e) {
-    rtf += '{\\pard\\ql\\sb100\\b\\fs22 ' + rtfEsc(e[0]) + '\\b0\\par}\n';
-    rtf += '{\\pard\\ql\\fs22 ' + rtfEsc(e[1]) + '\\par}\n';
+    P.push('{\\pard\\ql\\sb100\\b\\fs22 ' + rtfT(e[0]) + '\\b0\\par}\n');
+    P.push('{\\pard\\ql\\fs22 ' + rtfT(e[1]) + '\\par}\n');
   });
 
-  rtf += rtfDivisor();
+  P.push('{\\pard\\brdrb\\brdrs\\brdrw10\\sb200\\par}\n');
 
   // ASSINATURAS
-  rtf += '{\\pard\\ql\\cf1\\b\\fs28 ' + rtfEsc('ASSINATURAS') + '\\b0\\par}\n';
-  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc('Por estarem assim justas e contratadas, as partes assinam em 2 (duas) vias de igual teor.') + '\\par}\n';
-  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc('Local e data: Guarulhos/SP, ' + hoje) + '\\par}\n';
-  rtf += rtfEspaco(600);
+  P.push('{\\pard\\ql\\sb200\\cf1\\b\\fs28 ASSINATURAS\\b0\\par}\n');
+  par('Por estarem assim justas e contratadas, as partes assinam em 2 (duas) vias de igual teor.');
+  par('Local e data: Guarulhos/SP, ' + hoje);
 
-  // Linha CONTRATANTE
-  rtf += '{\\pard\\ql\\brdrb\\brdrs\\brdrw10\\fs22\\sb400 \\par}\n';
-  rtf += '{\\pard\\ql\\b\\fs22 ' + rtfEsc('CONTRATANTE') + '\\b0\\par}\n';
-  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc(c.nome||'[Nome da empresa]') + '\\par}\n';
-  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc((c.responsavel||'') + (c.cargo?' \u2014 '+c.cargo:'')) + '\\par}\n';
-  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc('CPF: ' + (c.cpfResp||'___________________')) + '\\par}\n';
-  rtf += rtfEspaco(400);
+  P.push('{\\pard\\sb600\\brdrb\\brdrs\\brdrw10\\par}\n');
+  P.push('{\\pard\\ql\\b\\fs22 CONTRATANTE\\b0\\par}\n');
+  P.push('{\\pard\\ql\\fs22 ' + rtfT(c.nome||'') + '\\par}\n');
+  P.push('{\\pard\\ql\\fs22 ' + rtfT((c.responsavel||'') + (c.cargo?' - '+c.cargo:'')) + '\\par}\n');
+  P.push('{\\pard\\ql\\fs22 CPF: ' + rtfT(c.cpfResp||'') + '\\par}\n');
 
-  // Linha CONTRATADA 1
-  rtf += '{\\pard\\ql\\brdrb\\brdrs\\brdrw10\\fs22\\sb400 \\par}\n';
-  rtf += '{\\pard\\ql\\b\\fs22 ' + rtfEsc('CONTRATADA 1') + '\\b0\\par}\n';
-  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc('VDL Gestão & Estratégia') + '\\par}\n';
-  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc('Vanessa Sampaio Sorrilha \u2014 Sócia Administradora') + '\\par}\n';
-  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc('CPF: 831.584.135-15 | CNPJ: 65.425.722/0001-33') + '\\par}\n';
-  rtf += rtfEspaco(400);
+  P.push('{\\pard\\sb600\\brdrb\\brdrs\\brdrw10\\par}\n');
+  P.push('{\\pard\\ql\\b\\fs22 CONTRATADA 1\\b0\\par}\n');
+  P.push('{\\pard\\ql\\fs22 VDL Gest' + String.fromCharCode(227) + 'o & Estrat' + String.fromCharCode(233) + 'gia\\par}\n');
+  P.push('{\\pard\\ql\\fs22 Vanessa Sampaio Sorrilha\\par}\n');
+  P.push('{\\pard\\ql\\fs22 CPF: 831.584.135-15\\par}\n');
 
-  // Linha CONTRATADA 2
-  rtf += '{\\pard\\ql\\brdrb\\brdrs\\brdrw10\\fs22\\sb400 \\par}\n';
-  rtf += '{\\pard\\ql\\b\\fs22 ' + rtfEsc('CONTRATADA 2') + '\\b0\\par}\n';
-  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc('Casa da Madrinha Espaço de Terapias Integrativas Ltda') + '\\par}\n';
-  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc('Cintia Luciana Kliman Bendito \u2014 Sócia Administradora') + '\\par}\n';
-  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc('CPF: 295.579.438-40 | CNPJ: 48.697.218/0001-73') + '\\par}\n';
-  rtf += rtfEspaco(400);
+  P.push('{\\pard\\sb600\\brdrb\\brdrs\\brdrw10\\par}\n');
+  P.push('{\\pard\\ql\\b\\fs22 CONTRATADA 2\\b0\\par}\n');
+  P.push('{\\pard\\ql\\fs22 Casa da Madrinha Espa' + String.fromCharCode(231) + 'o de Terapias Integrativas Ltda\\par}\n');
+  P.push('{\\pard\\ql\\fs22 Cintia Luciana Kliman Bendito\\par}\n');
+  P.push('{\\pard\\ql\\fs22 CPF: 295.579.438-40\\par}\n');
 
-  // TESTEMUNHAS
-  rtf += '{\\pard\\ql\\b\\fs22 ' + rtfEsc('TESTEMUNHAS:') + '\\b0\\par}\n';
-  rtf += rtfEspaco(300);
-  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc('1. Nome: _______________________________  CPF: ___________________') + '\\par}\n';
-  rtf += rtfEspaco(200);
-  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc('2. Nome: _______________________________  CPF: ___________________') + '\\par}\n';
+  P.push('{\\pard\\sb400\\b\\fs22 TESTEMUNHAS:\\b0\\par}\n');
+  P.push('{\\pard\\sb200\\fs22 1. Nome: _______________________________   CPF: ___________________\\par}\n');
+  P.push('{\\pard\\sb100\\fs22 2. Nome: _______________________________   CPF: ___________________\\par}\n');
 
-  rtf += rtfDivisor();
-  rtf += '{\\pard\\qc\\cf1\\b\\fs22 ' + rtfEsc('VDL Gestão & Estratégia + Casa da Madrinha Espaço de Terapias Integrativas Ltda') + '\\b0\\par}\n';
-  rtf += '{\\pard\\qc\\cf2\\fs20 ' + rtfEsc('vdl.vs.contato@gmail.com | cinthiakliman@gmail.com') + '\\par}\n';
-  rtf += '{\\pard\\qc\\cf2\\fs20 ' + rtfEsc('(11) 98983-6517 | (11) 97824-7337') + '\\par}\n';
+  P.push('{\\pard\\brdrb\\brdrs\\brdrw10\\sb300\\par}\n');
+  P.push('{\\pard\\qc\\cf1\\b\\fs22 VDL Gest' + String.fromCharCode(227) + 'o & Estrat' + String.fromCharCode(233) + 'gia + Casa da Madrinha\\b0\\par}\n');
+  P.push('{\\pard\\qc\\fs20 vdl.vs.contato@gmail.com | cinthiakliman@gmail.com\\par}\n');
+  P.push('{\\pard\\qc\\fs20 (11) 98983-6517 | (11) 97824-7337\\par}\n');
 
-  rtf += '}';
-  return rtf;
+  P.push('}'); // Fechar RTF
+
+  return P;
 }
 
 function gerarHtmlContrato(c, sets, hoje) {
