@@ -2476,13 +2476,23 @@ function baixarContratoDocx() {
 
   var sets = (c.setores||'').split('\n').filter(function(s){ return s.trim(); });
   var hoje = c.dataAssinatura || new Date().toLocaleDateString('pt-BR');
-  var nomeArq = 'Contrato_DRPS_' + c.nome.replace(/[^a-zA-Z0-9]/g,'_') + '.docx';
+  var nomeArq = 'Contrato_DRPS_' + c.nome.replace(/[^a-zA-Z0-9]/g,'_') + '.doc';
 
-  // Gerar HTML rico para converter em docx via Blob
   var html = gerarHtmlContrato(c, sets, hoje);
 
-  // Criar arquivo .doc (Word aceita HTML com namespace Office)
-  var blob = new Blob([html], { type: 'application/msword' });
+  // Usar formato MHT que o Word abre nativamente com formatação
+  var mht = 'MIME-Version: 1.0\r\n' +
+    'Content-Type: multipart/related; boundary="----=_NextPart_01"\r\n' +
+    '\r\n' +
+    '------=_NextPart_01\r\n' +
+    'Content-Type: text/html; charset="utf-8"\r\n' +
+    'Content-Transfer-Encoding: quoted-printable\r\n' +
+    '\r\n' +
+    html +
+    '\r\n------=_NextPart_01--';
+
+  // Baixar como .doc — Word aceita HTML dentro de .doc
+  var blob = new Blob([html], { type: 'application/vnd.ms-word;charset=utf-8' });
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
   a.href = url;
@@ -2493,7 +2503,7 @@ function baixarContratoDocx() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }, 1000);
-  toast('✓ Contrato baixado! Abra no Word para revisar e assinar.');
+  toast('Contrato baixado como .doc — abra no Word, revise e salve como .docx');
 }
 
 function gerarHtmlContrato(c, sets, hoje) {
@@ -2544,9 +2554,13 @@ function gerarHtmlContrato(c, sets, hoje) {
       '</td></tr></table></td>';
   }
 
-  return '<!DOCTYPE html>' +
-  '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">' +
-  '<head><meta charset="UTF-8">' +
+  return '<html xmlns:o="urn:schemas-microsoft-com:office:office" ' +
+  'xmlns:w="urn:schemas-microsoft-com:office:word" ' +
+  'xmlns="http://www.w3.org/TR/REC-html40">' +
+  '<head>' +
+  '<meta http-equiv="Content-Type" content="text/html; charset=utf-8">' +
+  '<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View>' +
+  '<w:Zoom>100</w:Zoom><w:DoNotOptimizeForBrowser/></w:WordDocument></xml><![endif]-->' +
   '<style>' +
   'body{font-family:Arial,sans-serif;font-size:12pt;color:#212121;margin:0;padding:0}' +
   '@page{margin:2cm}' +
