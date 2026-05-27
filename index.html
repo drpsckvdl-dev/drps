@@ -474,11 +474,15 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <div class="btn-group">
       <button class="btn btn-primary" id="btn-gerar-cont" onclick="gerarContrato()">
         <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" stroke-width="2"/></svg>
-        Gerar contrato completo
+        Gerar contrato
+      </button>
+      <button class="btn btn-success" id="btn-docx-cont" style="display:none" onclick="baixarContratoDocx()">
+        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-width="2"/></svg>
+        Baixar .docx
       </button>
       <button class="btn btn-secondary" id="btn-copiar-cont" style="display:none" onclick="copiarContrato()">
         <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" stroke-width="2"/></svg>
-        Copiar contrato
+        Copiar texto
       </button>
       <button class="btn btn-secondary" id="btn-impr-cont" style="display:none" onclick="imprimirContrato()">
         <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" stroke-width="2"/></svg>
@@ -1326,6 +1330,8 @@ etapasAnexo+'\n\n'+
     resultado.style.display = 'block';
     if(btnCopiar){ btnCopiar.style.display = 'inline-flex'; }
     if(btnImpr){ btnImpr.style.display = 'inline-flex'; }
+    var btnDocx = document.getElementById('btn-docx-cont');
+    if(btnDocx){ btnDocx.style.display = 'inline-flex'; }
     btnGerar.disabled = false;
     btnGerar.innerHTML = '<svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" stroke-width="2"/></svg> Gerar contrato completo';
     setStatus(c.cnpj, 'contrato');
@@ -2458,6 +2464,234 @@ function calcValorAuto() {
     var v = t.toFixed(2).replace('.', ',').replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
     el.value = 'R$ ' + v;
   }
+}
+
+// ═══════════════════════════════════════════════════
+// GERAR E BAIXAR CONTRATO .DOCX
+// ═══════════════════════════════════════════════════
+
+function baixarContratoDocx() {
+  var c = getDadosCliente('sel-cliente-cont');
+  if (!c) { toast('Selecione um cliente primeiro'); return; }
+
+  var sets = (c.setores||'').split('\n').filter(function(s){ return s.trim(); });
+  var hoje = c.dataAssinatura || new Date().toLocaleDateString('pt-BR');
+  var nomeArq = 'Contrato_DRPS_' + c.nome.replace(/[^a-zA-Z0-9]/g,'_') + '.docx';
+
+  // Gerar HTML rico para converter em docx via Blob
+  var html = gerarHtmlContrato(c, sets, hoje);
+
+  // Criar arquivo .doc (Word aceita HTML com namespace Office)
+  var blob = new Blob([html], { type: 'application/msword' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = nomeArq;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function() {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 1000);
+  toast('✓ Contrato baixado! Abra no Word para revisar e assinar.');
+}
+
+function gerarHtmlContrato(c, sets, hoje) {
+  var setoresList = sets.map(function(s, i) {
+    return '<tr><td style="padding:4px 12px;font-size:12pt">' + (i+1) + '. ' + s.trim() + '</td></tr>';
+  }).join('');
+
+  var etapas = [
+    ['Etapa 1 — Alinhamento inicial', 'Reunião com os responsáveis internos da CONTRATANTE para apresentação da metodologia, definição dos setores avaliados e planejamento da comunicação interna.'],
+    ['Etapa 2 — Coleta de dados', 'Aplicação do questionário DRPS em formato digital, anônimo e confidencial, para os colaboradores dos setores: ' + sets.join(', ') + '. Prazo: 5 a 10 dias úteis.'],
+    ['Etapa 3 — Análise técnica', 'Análise quantitativa das respostas e avaliação qualitativa pelo responsável técnico, com classificação dos riscos conforme Matriz de Risco NR-01 (Gravidade × Probabilidade).'],
+    ['Etapa 4 — Elaboração do laudo', 'Elaboração do Laudo Técnico de Riscos Psicossociais, contemplando análise por setor, tabela dos 13 eixos FRPRT do MTE, medidas de prevenção e tabela de recomendações técnicas.'],
+    ['Etapa 5 — Entrega e apresentação', 'Reunião de apresentação dos resultados e entrega do Laudo Técnico assinado digitalmente pelos responsáveis técnicos, pronto para integração ao PGR.'],
+  ].map(function(e) {
+    return '<tr><td style="background:#E8F0F8;padding:10px 14px;border:1px solid #C5CAE9;border-radius:4px;margin-bottom:8px">' +
+      '<p style="font-weight:bold;color:#1A3A5C;margin:0 0 4px 0;font-size:12pt">' + e[0] + '</p>' +
+      '<p style="margin:0;font-size:11pt;color:#444">' + e[1] + '</p>' +
+      '</td></tr>';
+  }).join('<tr><td style="height:8px"></td></tr>');
+
+  function campo(label, valor) {
+    return '<tr>' +
+      '<td style="background:#E8F0F8;padding:8px 12px;border:1px solid #ddd;font-weight:bold;color:#1A3A5C;width:160px;font-size:11pt">' + label + '</td>' +
+      '<td style="padding:8px 12px;border:1px solid #ddd;font-size:11pt">' + (valor||'—') + '</td>' +
+      '</tr>';
+  }
+
+  function secao(titulo) {
+    return '<tr><td colspan="2" style="padding:16px 0 4px 0"><p style="font-weight:bold;font-size:13pt;color:#1A3A5C;border-bottom:2px solid #1A3A5C;padding-bottom:4px;margin:0">' + titulo + '</p></td></tr>';
+  }
+
+  function clausula(num, nome) {
+    return '<h3 style="color:#1A3A5C;font-size:13pt;margin:20px 0 8px 0;border-left:4px solid #1A3A5C;padding-left:10px">' + num + ' — ' + nome + '</h3>';
+  }
+
+  function alinea(letra, txt) {
+    return '<p style="margin:4px 0 4px 20px;font-size:12pt"><b>' + letra + ')</b> ' + txt + '</p>';
+  }
+
+  function assinatura(titulo, nome, cargo, cnpj, cpf) {
+    return '<td style="width:33%;padding:10px;vertical-align:top">' +
+      '<p style="font-size:10pt;color:#666;margin:0 0 2px 0">' + titulo + '</p>' +
+      '<table style="width:100%"><tr><td style="border-top:1px solid #999;padding-top:12px">' +
+      '<p style="font-weight:bold;font-size:12pt;margin:4px 0;color:#1A3A5C">' + nome + '</p>' +
+      '<p style="font-size:10pt;margin:2px 0;color:#666">' + cargo + '</p>' +
+      '<p style="font-size:10pt;margin:2px 0;color:#666">CPF: ' + cpf + '</p>' +
+      '<p style="font-size:10pt;margin:2px 0;color:#666">CNPJ: ' + cnpj + '</p>' +
+      '</td></tr></table></td>';
+  }
+
+  return '<!DOCTYPE html>' +
+  '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">' +
+  '<head><meta charset="UTF-8">' +
+  '<style>' +
+  'body{font-family:Arial,sans-serif;font-size:12pt;color:#212121;margin:0;padding:0}' +
+  '@page{margin:2cm}' +
+  'table{border-collapse:collapse;width:100%}' +
+  'p{line-height:1.6;margin:8px 0}' +
+  'h1{color:#1A3A5C;text-align:center;font-size:16pt;margin:0}' +
+  'h2{color:#1A3A5C;text-align:center;font-size:13pt;font-weight:normal;margin:4px 0}' +
+  '.divisor{border:none;border-top:1px solid #CCC;margin:16px 0}' +
+  '</style></head><body>' +
+
+  // CAPA
+  '<div style="text-align:center;padding:40px 0 30px 0;border-bottom:3px solid #1A3A5C;margin-bottom:24px">' +
+  '<h1>CONTRATO DE PRESTAÇÃO DE SERVIÇOS</h1>' +
+  '<h2>DIAGNÓSTICO DE RISCOS PSICOSSOCIAIS — DRPS</h2>' +
+  '<p style="color:#666;font-size:11pt">NR-1 | Portaria MTE nº 1.419/2024</p>' +
+  '</div>' +
+
+  // IDENTIFICAÇÃO
+  '<h2 style="color:#1A3A5C;border-bottom:2px solid #1A3A5C;padding-bottom:6px;font-size:14pt;font-weight:bold;text-align:left">IDENTIFICAÇÃO DAS PARTES</h2>' +
+  '<table style="margin-bottom:16px">' +
+  '<tr><td colspan="2"><p style="font-weight:bold;color:#1A3A5C;margin:12px 0 6px 0;font-size:12pt">CONTRATANTE</p></td></tr>' +
+  campo('Razão Social', c.nome) +
+  campo('CNPJ', c.cnpj) +
+  campo('Endereço', c.endereco) +
+  campo('Representante', (c.responsavel||'') + (c.cargo ? ' — ' + c.cargo : '')) +
+  campo('CPF', c.cpfResp) +
+  campo('E-mail', c.email) +
+  campo('Telefone', c.tel) +
+  '</table>' +
+
+  '<table style="margin-bottom:16px">' +
+  '<tr><td colspan="2"><p style="font-weight:bold;color:#1A3A5C;margin:12px 0 6px 0;font-size:12pt">CONTRATADA 1 — VDL Gestão &amp; Estratégia</p></td></tr>' +
+  campo('Razão Social', 'Vanessa Sampaio Sorrilha') +
+  campo('CNPJ', '65.425.722/0001-33') +
+  campo('Endereço', 'Rua Dona Tecla, 230, T4-46, Jardim Flor da Montanha, Guarulhos/SP — CEP: 07097-380') +
+  campo('Representante', 'Vanessa Sampaio Sorrilha (Sócia Administradora)') +
+  campo('CPF', '831.584.135-15') +
+  campo('E-mail', 'vdl.vs.contato@gmail.com') +
+  campo('Telefone', '(11) 98983-6517') +
+  '</table>' +
+
+  '<table style="margin-bottom:24px">' +
+  '<tr><td colspan="2"><p style="font-weight:bold;color:#1A3A5C;margin:12px 0 6px 0;font-size:12pt">CONTRATADA 2 — Casa da Madrinha Espaço de Terapias Integrativas Ltda</p></td></tr>' +
+  campo('CNPJ', '48.697.218/0001-73') +
+  campo('Endereço', 'Av. Barber Greene, 664, Guarulhos/SP') +
+  campo('Representante', 'Cintia Luciana Kliman Bendito (Sócia Administradora)') +
+  campo('CPF', '295.579.438-40') +
+  campo('End. residencial', 'Rua Noel Rosa, 363, Jd. Paraventi, Guarulhos/SP — CEP: 07120-050') +
+  campo('E-mail', 'cinthiakliman@gmail.com') +
+  campo('Telefone', '(11) 97824-7337') +
+  '</table>' +
+
+  '<hr class="divisor">' +
+
+  // CLÁUSULAS
+  '<h2 style="color:#1A3A5C;border-bottom:2px solid #1A3A5C;padding-bottom:6px;font-size:14pt;font-weight:bold;text-align:left;margin-top:24px">CLÁUSULAS DO CONTRATO</h2>' +
+  '<p style="font-size:12pt">Pelo presente instrumento particular, as partes acima qualificadas têm entre si justo e contratado o seguinte:</p>' +
+
+  clausula('CLÁUSULA 1ª', 'DO OBJETO') +
+  '<p>O presente contrato tem como objeto a prestação de serviços de Diagnóstico de Riscos Psicossociais (DRPS), conforme exigido pela NR-1 (Portaria MTE nº 1.419/2024), compreendendo:</p>' +
+  alinea('a', 'Aplicação de instrumento diagnóstico (questionário estruturado) junto aos colaboradores da CONTRATANTE;') +
+  alinea('b', 'Análise quantitativa e qualitativa dos dados coletados;') +
+  alinea('c', 'Classificação dos riscos conforme Matriz de Risco NR-01;') +
+  alinea('d', 'Elaboração e entrega de Laudo Técnico de Riscos Psicossociais por setor, com validade jurídica para integração ao PGR.') +
+  '<p>A prestação de serviços abrangerá <b>' + (c.colaboradores||'?') + ' colaboradores</b>, distribuídos nos seguintes setores:</p>' +
+  '<table style="margin:0 0 0 20px;width:auto">' + setoresList + '</table>' +
+
+  clausula('CLÁUSULA 2ª', 'DA DURAÇÃO') +
+  '<p>O presente contrato terá vigência a partir da data de sua assinatura, encerrando-se com a entrega do Laudo Técnico, prevista em <b>' + (c.prazoLaudo||'7 dias úteis após a coleta') + '</b>.</p>' +
+
+  clausula('CLÁUSULA 3ª', 'DO INVESTIMENTO E PAGAMENTO') +
+  '<p>Pelos serviços prestados, a CONTRATANTE pagará às CONTRATADAS o valor total de <b>' + (c.valor||'a combinar') + '</b>.</p>' +
+  '<p>Forma de pagamento: <b>' + (c.pagamento||'a combinar') + '</b></p>' +
+  '<p><b>§1º</b> Em caso de atraso no pagamento, incidirão multa de 2% sobre o valor devido, acrescidos de juros de 1% ao mês e correção pelo IPCA.</p>' +
+  '<p><b>§2º</b> A CONTRATANTE autoriza o uso de seu nome e CNPJ para fins de cobrança judicial em caso de inadimplência superior a 30 dias.</p>' +
+
+  clausula('CLÁUSULA 4ª', 'DAS OBRIGAÇÕES DAS PARTES') +
+  '<p><b>São obrigações das CONTRATADAS:</b></p>' +
+  alinea('a', 'Executar os serviços com excelência técnica, dentro dos prazos acordados;') +
+  alinea('b', 'Manter sigilo absoluto sobre as informações obtidas durante a prestação dos serviços;') +
+  alinea('c', 'Garantir o anonimato dos colaboradores participantes do diagnóstico;') +
+  alinea('d', 'Entregar o Laudo Técnico devidamente fundamentado e assinado pelos responsáveis técnicos.') +
+  '<p><b>São obrigações da CONTRATANTE:</b></p>' +
+  alinea('a', 'Efetuar os pagamentos nos prazos e condições estipulados;') +
+  alinea('b', 'Viabilizar o acesso aos colaboradores para participação no questionário;') +
+  alinea('c', 'Comunicar internamente a realização do diagnóstico, incentivando a participação;') +
+  alinea('d', 'Garantir taxa mínima de 70% de respondentes por setor avaliado;') +
+  alinea('e', 'Fornecer as informações organizacionais necessárias para a elaboração do diagnóstico.') +
+
+  clausula('CLÁUSULA 5ª', 'DA CONFIDENCIALIDADE E LGPD') +
+  '<p>Todas as informações são sigilosas. As partes comprometem-se a tratar os dados pessoais conforme a Lei 13.709/2018 (LGPD), garantindo:</p>' +
+  alinea('a', 'O anonimato dos respondentes do questionário DRPS;') +
+  alinea('b', 'O tratamento agregado e coletivo dos dados, sem identificação individual;') +
+  alinea('c', 'O uso das informações exclusivamente para a finalidade do diagnóstico contratado;') +
+  alinea('d', 'A não divulgação dos resultados a terceiros sem autorização expressa da CONTRATANTE.') +
+
+  clausula('CLÁUSULA 6ª', 'DO USO DE IMAGEM E REFERÊNCIA COMERCIAL') +
+  '<p>A CONTRATANTE autoriza as CONTRATADAS a mencionar seu nome como cliente em materiais de divulgação, preservando o sigilo sobre os resultados do diagnóstico.</p>' +
+
+  clausula('CLÁUSULA 7ª', 'DA RESCISÃO') +
+  '<p>O contrato poderá ser rescindido mediante notificação prévia de 15 dias:</p>' +
+  alinea('a', 'Por iniciativa da CONTRATANTE após início dos serviços: multa de 20% sobre o valor total, além do pagamento proporcional pelos serviços prestados;') +
+  alinea('b', 'Por iniciativa das CONTRATADAS: devolução proporcional dos valores recebidos.') +
+
+  clausula('CLÁUSULA 8ª', 'DAS DISPOSIÇÕES GERAIS') +
+  alinea('a', 'Este contrato representa a totalidade do acordo entre as partes;') +
+  alinea('b', 'Qualquer alteração somente terá validade se feita por escrito e assinada por ambas as partes;') +
+  alinea('c', 'Este contrato é regido pelas leis brasileiras.') +
+  '<p>As partes elegem o foro da comarca de <b>Guarulhos/SP</b> para dirimir quaisquer controvérsias.</p>' +
+
+  '<hr class="divisor">' +
+
+  // ANEXO I
+  '<h2 style="color:#1A3A5C;border-bottom:2px solid #1A3A5C;padding-bottom:6px;font-size:14pt;font-weight:bold;text-align:left;margin-top:24px">ANEXO I — ETAPAS DO TRABALHO</h2>' +
+  '<p>A execução dos serviços seguirá as seguintes etapas:</p>' +
+  '<table style="margin-top:12px"><tbody>' + etapas + '</tbody></table>' +
+
+  '<hr class="divisor">' +
+
+  // ASSINATURAS
+  '<h2 style="color:#1A3A5C;border-bottom:2px solid #1A3A5C;padding-bottom:6px;font-size:14pt;font-weight:bold;text-align:left;margin-top:24px">ASSINATURAS</h2>' +
+  '<p>Por estarem assim justas e contratadas, as partes assinam em 2 (duas) vias de igual teor.</p>' +
+  '<p>Local e data: <b>Guarulhos/SP, ' + hoje + '</b></p>' +
+  '<br><br>' +
+  '<table style="width:100%;margin-top:20px"><tr>' +
+  assinatura('CONTRATANTE', c.nome||'[Nome da empresa]', (c.responsavel||'Representante') + (c.cargo?' — '+c.cargo:''), c.cnpj||'[CNPJ]', c.cpfResp||'[CPF]') +
+  assinatura('CONTRATADA 1', 'Vanessa Sampaio Sorrilha', 'VDL Gestão &amp; Estratégia — Sócia Administradora', '65.425.722/0001-33', '831.584.135-15') +
+  assinatura('CONTRATADA 2', 'Cintia Luciana Kliman Bendito', 'Casa da Madrinha — Sócia Administradora', '48.697.218/0001-73', '295.579.438-40') +
+  '</tr></table>' +
+  '<br><br>' +
+
+  // TESTEMUNHAS
+  '<h3 style="color:#666;font-size:12pt">TESTEMUNHAS</h3>' +
+  '<table style="width:100%"><tr>' +
+  '<td style="width:48%;border-top:1px solid #999;padding-top:10px"><p style="font-size:11pt">1. Nome: _______________________________</p><p style="font-size:11pt">    CPF: ________________________________</p></td>' +
+  '<td style="width:4%"></td>' +
+  '<td style="width:48%;border-top:1px solid #999;padding-top:10px"><p style="font-size:11pt">2. Nome: _______________________________</p><p style="font-size:11pt">    CPF: ________________________________</p></td>' +
+  '</tr></table>' +
+  '<br>' +
+  '<div style="text-align:center;border-top:2px solid #1A3A5C;padding-top:10px;margin-top:20px">' +
+  '<p style="font-weight:bold;color:#1A3A5C;margin:0">VDL Gestão &amp; Estratégia + Casa da Madrinha Espaço de Terapias Integrativas Ltda</p>' +
+  '<p style="color:#666;font-size:10pt;margin:4px 0">vdl.vs.contato@gmail.com | cinthiakliman@gmail.com</p>' +
+  '<p style="color:#666;font-size:10pt;margin:0">(11) 98983-6517 | (11) 97824-7337</p>' +
+  '</div>' +
+  '</body></html>';
 }
 
 // ═══════════════════════════════════════════════════
