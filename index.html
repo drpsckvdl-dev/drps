@@ -2473,37 +2473,233 @@ function calcValorAuto() {
 function baixarContratoDocx() {
   var c = getDadosCliente('sel-cliente-cont');
   if (!c) { toast('Selecione um cliente primeiro'); return; }
-
   var sets = (c.setores||'').split('\n').filter(function(s){ return s.trim(); });
   var hoje = c.dataAssinatura || new Date().toLocaleDateString('pt-BR');
-  var nomeArq = 'Contrato_DRPS_' + c.nome.replace(/[^a-zA-Z0-9]/g,'_') + '.doc';
-
-  var html = gerarHtmlContrato(c, sets, hoje);
-
-  // Usar formato MHT que o Word abre nativamente com formatação
-  var mht = 'MIME-Version: 1.0\r\n' +
-    'Content-Type: multipart/related; boundary="----=_NextPart_01"\r\n' +
-    '\r\n' +
-    '------=_NextPart_01\r\n' +
-    'Content-Type: text/html; charset="utf-8"\r\n' +
-    'Content-Transfer-Encoding: quoted-printable\r\n' +
-    '\r\n' +
-    html +
-    '\r\n------=_NextPart_01--';
-
-  // Baixar como .doc — Word aceita HTML dentro de .doc
-  var blob = new Blob([html], { type: 'application/vnd.ms-word;charset=utf-8' });
+  var nomeArq = 'Contrato_DRPS_' + c.nome.replace(/[^a-zA-Z0-9]/g,'_') + '.rtf';
+  var rtf = gerarRTFContrato(c, sets, hoje);
+  var blob = new Blob([rtf], { type: 'application/rtf' });
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
   a.href = url;
   a.download = nomeArq;
   document.body.appendChild(a);
   a.click();
-  setTimeout(function() {
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, 1000);
-  toast('Contrato baixado como .doc — abra no Word, revise e salve como .docx');
+  setTimeout(function() { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
+  toast('Contrato baixado! Abra no Word normalmente.');
+}
+
+function rtfEsc(txt) {
+  if (!txt) return '';
+  var result = '';
+  for (var i = 0; i < txt.length; i++) {
+    var code = txt.charCodeAt(i);
+    if (code === 92) result += '\\\\';
+    else if (code === 123) result += '\\{';
+    else if (code === 125) result += '\\}';
+    else if (code > 127) {
+      result += '\\u' + code + '?';
+    } else {
+      result += txt[i];
+    }
+  }
+  return result;
+}
+
+function rtfLinha(txt, bold, size, cor, align) {
+  var s = size || 24;
+  var a = align === 'center' ? '\\qc' : (align === 'right' ? '\\qr' : '\\ql');
+  var b = bold ? '\\b' : '';
+  var c = cor ? '\\cf' + cor : '\\cf0';
+  return '{\\pard ' + a + ' ' + c + b + '\\fs' + s + ' ' + rtfEsc(txt) + '\\par}\n';
+}
+
+function rtfEspaco(n) {
+  return '{\\pard\\sb' + (n||200) + '\\par}\n';
+}
+
+function rtfDivisor() {
+  return '{\\pard\\brdrb\\brdrs\\brdrw10\\brdrcf2\\sb200\\sb200\\par}\n';
+}
+
+function rtfCampo(label, valor) {
+  return '{\\pard\\ql\\fs22\\cf1\\b ' + rtfEsc(label) + ':\\b0\\cf0  ' + rtfEsc(valor||'—') + '\\par}\n';
+}
+
+function rtfClausula(num, nome) {
+  return '{\\pard\\ql\\sb200\\cf1\\b\\fs26 ' + rtfEsc(num + ' \u2014 ' + nome) + '\\b0\\par}\n';
+}
+
+function rtfAlinea(letra, txt) {
+  return '{\\pard\\ql\\li360\\fs22\\b ' + rtfEsc(letra + ')') + '\\b0  ' + rtfEsc(txt) + '\\par}\n';
+}
+
+function gerarRTFContrato(c, sets, hoje) {
+  var s = sets || [];
+
+  var rtf = '{\\rtf1\\ansi\\ansicpg1252\\deff0\n';
+  rtf += '{\\fonttbl{\\f0\\froman\\fcharset0 Arial;}}\n';
+  rtf += '{\\colortbl;\\red26\\green58\\blue92;\\red150\\blue150;\\red33\\green33\\blue33;}\n';
+  rtf += '{\\info{\\title Contrato DRPS}}\n';
+  rtf += '\\paperw11906\\paperh16838\\margl1134\\margr1134\\margt1134\\margb1134\n';
+  rtf += '\\widowctrl\\hyphauto\n';
+
+  // TÍTULO
+  rtf += rtfEspaco(400);
+  rtf += '{\\pard\\qc\\cf1\\b\\fs36 ' + rtfEsc('CONTRATO DE PRESTAÇÃO DE SERVIÇOS') + '\\b0\\par}\n';
+  rtf += '{\\pard\\qc\\cf1\\b\\fs28 ' + rtfEsc('DIAGNÓSTICO DE RISCOS PSICOSSOCIAIS \u2014 DRPS') + '\\b0\\par}\n';
+  rtf += '{\\pard\\qc\\cf2\\fs22 ' + rtfEsc('NR-1 | Portaria MTE n\u00ba 1.419/2024') + '\\par}\n';
+  rtf += rtfDivisor();
+
+  // INTRO
+  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc('Pelo presente instrumento particular, as partes abaixo qualificadas têm entre si justo e contratado o seguinte:') + '\\par}\n';
+  rtf += rtfEspaco(200);
+
+  // CONTRATANTE
+  rtf += '{\\pard\\ql\\cf1\\b\\fs26 ' + rtfEsc('CONTRATANTE') + '\\b0\\par}\n';
+  rtf += rtfCampo('Razão Social', c.nome);
+  rtf += rtfCampo('CNPJ', c.cnpj);
+  rtf += rtfCampo('Endereço', c.endereco);
+  rtf += rtfCampo('Representante Legal', (c.responsavel||'') + (c.cargo ? ' \u2014 ' + c.cargo : ''));
+  rtf += rtfCampo('CPF', c.cpfResp);
+  rtf += rtfCampo('E-mail', c.email);
+  rtf += rtfCampo('Telefone', c.tel);
+  rtf += rtfEspaco(200);
+
+  // CONTRATADA 1
+  rtf += '{\\pard\\ql\\cf1\\b\\fs26 ' + rtfEsc('CONTRATADA 1 \u2014 VDL Gestão & Estratégia') + '\\b0\\par}\n';
+  rtf += rtfCampo('Razão Social', 'Vanessa Sampaio Sorrilha');
+  rtf += rtfCampo('CNPJ', '65.425.722/0001-33');
+  rtf += rtfCampo('Endereço', 'Rua Dona Tecla, 230, T4-46, Jardim Flor da Montanha, Guarulhos/SP \u2014 CEP: 07097-380');
+  rtf += rtfCampo('Representante', 'Vanessa Sampaio Sorrilha (Sócia Administradora)');
+  rtf += rtfCampo('CPF', '831.584.135-15');
+  rtf += rtfCampo('E-mail', 'vdl.vs.contato@gmail.com');
+  rtf += rtfCampo('Telefone', '(11) 98983-6517');
+  rtf += rtfEspaco(200);
+
+  // CONTRATADA 2
+  rtf += '{\\pard\\ql\\cf1\\b\\fs26 ' + rtfEsc('CONTRATADA 2 \u2014 Casa da Madrinha Espaço de Terapias Integrativas Ltda') + '\\b0\\par}\n';
+  rtf += rtfCampo('CNPJ', '48.697.218/0001-73');
+  rtf += rtfCampo('Endereço', 'Av. Barber Greene, 664, Guarulhos/SP');
+  rtf += rtfCampo('Representante', 'Cintia Luciana Kliman Bendito (Sócia Administradora)');
+  rtf += rtfCampo('CPF', '295.579.438-40');
+  rtf += rtfCampo('End. residencial', 'Rua Noel Rosa, 363, Jd. Paraventi, Guarulhos/SP \u2014 CEP: 07120-050');
+  rtf += rtfCampo('E-mail', 'cinthiakliman@gmail.com');
+  rtf += rtfCampo('Telefone', '(11) 97824-7337');
+  rtf += rtfDivisor();
+
+  // CLÁUSULAS
+  rtf += rtfClausula('CLÁUSULA 1\u00aa', 'DO OBJETO');
+  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc('O presente contrato tem como objeto a prestação de serviços de Diagnóstico de Riscos Psicossociais (DRPS), conforme exigido pela NR-1 (Portaria MTE n\u00ba 1.419/2024), compreendendo:') + '\\par}\n';
+  rtf += rtfAlinea('a', 'Aplicação de instrumento diagnóstico (questionário estruturado) junto aos colaboradores da CONTRATANTE;');
+  rtf += rtfAlinea('b', 'Análise quantitativa e qualitativa dos dados coletados;');
+  rtf += rtfAlinea('c', 'Classificação dos riscos conforme Matriz de Risco NR-01;');
+  rtf += rtfAlinea('d', 'Elaboração e entrega de Laudo Técnico de Riscos Psicossociais por setor, com validade jurídica para integração ao PGR.');
+  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc('A prestação de serviços abrangerá ' + (c.colaboradores||'?') + ' colaboradores, nos setores:') + '\\par}\n';
+  s.forEach(function(st, i) {
+    rtf += '{\\pard\\ql\\li360\\fs22 ' + rtfEsc((i+1) + '. ' + st.trim()) + '\\par}\n';
+  });
+
+  rtf += rtfClausula('CLÁUSULA 2\u00aa', 'DA DURAÇÃO');
+  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc('O presente contrato terá vigência a partir da data de sua assinatura, encerrando-se com a entrega do Laudo Técnico, prevista em ' + (c.prazoLaudo||'7 dias úteis após a coleta') + '.') + '\\par}\n';
+
+  rtf += rtfClausula('CLÁUSULA 3\u00aa', 'DO INVESTIMENTO E PAGAMENTO');
+  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc('Pelos serviços prestados, a CONTRATANTE pagará às CONTRATADAS o valor total de ' + (c.valor||'a combinar') + '.') + '\\par}\n';
+  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc('Forma de pagamento: ' + (c.pagamento||'a combinar')) + '\\par}\n';
+  rtf += '{\\pard\\ql\\fs22\\sb80 ' + rtfEsc('\u00a71\u00ba Em caso de atraso, multa de 2%, juros de 1% ao mês e correção pelo IPCA.') + '\\par}\n';
+  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc('\u00a72\u00ba A CONTRATANTE autoriza uso do nome e CNPJ para cobrança judicial em caso de inadimplência superior a 30 dias.') + '\\par}\n';
+
+  rtf += rtfClausula('CLÁUSULA 4\u00aa', 'DAS OBRIGAÇÕES DAS PARTES');
+  rtf += '{\\pard\\ql\\b\\fs22 ' + rtfEsc('São obrigações das CONTRATADAS:') + '\\b0\\par}\n';
+  rtf += rtfAlinea('a', 'Executar os serviços com excelência técnica, dentro dos prazos acordados;');
+  rtf += rtfAlinea('b', 'Manter sigilo absoluto sobre as informações obtidas;');
+  rtf += rtfAlinea('c', 'Garantir o anonimato dos colaboradores participantes do diagnóstico;');
+  rtf += rtfAlinea('d', 'Entregar o Laudo Técnico devidamente fundamentado e assinado.');
+  rtf += '{\\pard\\ql\\b\\fs22 ' + rtfEsc('São obrigações da CONTRATANTE:') + '\\b0\\par}\n';
+  rtf += rtfAlinea('a', 'Efetuar os pagamentos nos prazos e condições estipulados;');
+  rtf += rtfAlinea('b', 'Viabilizar o acesso aos colaboradores para participação no questionário;');
+  rtf += rtfAlinea('c', 'Comunicar internamente a realização do diagnóstico;');
+  rtf += rtfAlinea('d', 'Garantir taxa mínima de 70% de respondentes por setor;');
+  rtf += rtfAlinea('e', 'Fornecer as informações organizacionais necessárias.');
+
+  rtf += rtfClausula('CLÁUSULA 5\u00aa', 'DA CONFIDENCIALIDADE E LGPD');
+  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc('As partes comprometem-se a tratar os dados pessoais conforme a Lei 13.709/2018 (LGPD), garantindo o anonimato dos respondentes e o uso das informações exclusivamente para a finalidade do diagnóstico.') + '\\par}\n';
+
+  rtf += rtfClausula('CLÁUSULA 6\u00aa', 'DO USO DE IMAGEM E REFERÊNCIA COMERCIAL');
+  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc('A CONTRATANTE autoriza as CONTRATADAS a mencionar seu nome em materiais de divulgação, preservando o sigilo dos resultados.') + '\\par}\n';
+
+  rtf += rtfClausula('CLÁUSULA 7\u00aa', 'DA RESCISÃO');
+  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc('O contrato poderá ser rescindido mediante notificação prévia de 15 dias:') + '\\par}\n';
+  rtf += rtfAlinea('a', 'Por iniciativa da CONTRATANTE após início dos serviços: multa de 20% sobre o valor total;');
+  rtf += rtfAlinea('b', 'Por iniciativa das CONTRATADAS: devolução proporcional dos valores recebidos.');
+
+  rtf += rtfClausula('CLÁUSULA 8\u00aa', 'DAS DISPOSIÇÕES GERAIS');
+  rtf += rtfAlinea('a', 'Este contrato representa a totalidade do acordo entre as partes;');
+  rtf += rtfAlinea('b', 'Qualquer alteração somente terá validade se feita por escrito e assinada por ambas as partes;');
+  rtf += rtfAlinea('c', 'Este contrato é regido pelas leis brasileiras.');
+  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc('As partes elegem o foro da comarca de Guarulhos/SP para dirimir quaisquer controvérsias.') + '\\par}\n';
+
+  rtf += rtfDivisor();
+
+  // ANEXO I
+  rtf += '{\\pard\\ql\\cf1\\b\\fs28 ' + rtfEsc('ANEXO I \u2014 ETAPAS DO TRABALHO') + '\\b0\\par}\n';
+  var etapas = [
+    ['Etapa 1 \u2014 Alinhamento inicial', 'Reunião com os responsáveis para apresentação da metodologia e planejamento.'],
+    ['Etapa 2 \u2014 Coleta de dados', 'Aplicação do questionário DRPS anônimo para os setores: ' + s.join(', ') + '. Prazo: 5 a 10 dias úteis.'],
+    ['Etapa 3 \u2014 Análise técnica', 'Análise quantitativa e qualitativa com classificação dos riscos conforme Matriz NR-01.'],
+    ['Etapa 4 \u2014 Elaboração do laudo', 'Laudo Técnico com análise por setor, 13 eixos FRPRT e tabela de recomendações.'],
+    ['Etapa 5 \u2014 Entrega e apresentação', 'Reunião de apresentação e entrega do Laudo assinado pronto para o PGR.'],
+  ];
+  etapas.forEach(function(e) {
+    rtf += '{\\pard\\ql\\sb100\\b\\fs22 ' + rtfEsc(e[0]) + '\\b0\\par}\n';
+    rtf += '{\\pard\\ql\\fs22 ' + rtfEsc(e[1]) + '\\par}\n';
+  });
+
+  rtf += rtfDivisor();
+
+  // ASSINATURAS
+  rtf += '{\\pard\\ql\\cf1\\b\\fs28 ' + rtfEsc('ASSINATURAS') + '\\b0\\par}\n';
+  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc('Por estarem assim justas e contratadas, as partes assinam em 2 (duas) vias de igual teor.') + '\\par}\n';
+  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc('Local e data: Guarulhos/SP, ' + hoje) + '\\par}\n';
+  rtf += rtfEspaco(600);
+
+  // Linha CONTRATANTE
+  rtf += '{\\pard\\ql\\brdrb\\brdrs\\brdrw10\\fs22\\sb400 \\par}\n';
+  rtf += '{\\pard\\ql\\b\\fs22 ' + rtfEsc('CONTRATANTE') + '\\b0\\par}\n';
+  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc(c.nome||'[Nome da empresa]') + '\\par}\n';
+  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc((c.responsavel||'') + (c.cargo?' \u2014 '+c.cargo:'')) + '\\par}\n';
+  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc('CPF: ' + (c.cpfResp||'___________________')) + '\\par}\n';
+  rtf += rtfEspaco(400);
+
+  // Linha CONTRATADA 1
+  rtf += '{\\pard\\ql\\brdrb\\brdrs\\brdrw10\\fs22\\sb400 \\par}\n';
+  rtf += '{\\pard\\ql\\b\\fs22 ' + rtfEsc('CONTRATADA 1') + '\\b0\\par}\n';
+  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc('VDL Gestão & Estratégia') + '\\par}\n';
+  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc('Vanessa Sampaio Sorrilha \u2014 Sócia Administradora') + '\\par}\n';
+  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc('CPF: 831.584.135-15 | CNPJ: 65.425.722/0001-33') + '\\par}\n';
+  rtf += rtfEspaco(400);
+
+  // Linha CONTRATADA 2
+  rtf += '{\\pard\\ql\\brdrb\\brdrs\\brdrw10\\fs22\\sb400 \\par}\n';
+  rtf += '{\\pard\\ql\\b\\fs22 ' + rtfEsc('CONTRATADA 2') + '\\b0\\par}\n';
+  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc('Casa da Madrinha Espaço de Terapias Integrativas Ltda') + '\\par}\n';
+  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc('Cintia Luciana Kliman Bendito \u2014 Sócia Administradora') + '\\par}\n';
+  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc('CPF: 295.579.438-40 | CNPJ: 48.697.218/0001-73') + '\\par}\n';
+  rtf += rtfEspaco(400);
+
+  // TESTEMUNHAS
+  rtf += '{\\pard\\ql\\b\\fs22 ' + rtfEsc('TESTEMUNHAS:') + '\\b0\\par}\n';
+  rtf += rtfEspaco(300);
+  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc('1. Nome: _______________________________  CPF: ___________________') + '\\par}\n';
+  rtf += rtfEspaco(200);
+  rtf += '{\\pard\\ql\\fs22 ' + rtfEsc('2. Nome: _______________________________  CPF: ___________________') + '\\par}\n';
+
+  rtf += rtfDivisor();
+  rtf += '{\\pard\\qc\\cf1\\b\\fs22 ' + rtfEsc('VDL Gestão & Estratégia + Casa da Madrinha Espaço de Terapias Integrativas Ltda') + '\\b0\\par}\n';
+  rtf += '{\\pard\\qc\\cf2\\fs20 ' + rtfEsc('vdl.vs.contato@gmail.com | cinthiakliman@gmail.com') + '\\par}\n';
+  rtf += '{\\pard\\qc\\cf2\\fs20 ' + rtfEsc('(11) 98983-6517 | (11) 97824-7337') + '\\par}\n';
+
+  rtf += '}';
+  return rtf;
 }
 
 function gerarHtmlContrato(c, sets, hoje) {
