@@ -2461,6 +2461,53 @@ function calcValorAuto() {
 }
 
 // ═══════════════════════════════════════════════════
+// IMPRIMIR E COPIAR CONTRATO
+// ═══════════════════════════════════════════════════
+
+function copiarContrato() {
+  var el = document.getElementById('cont-content');
+  if (!el || !el.textContent.trim()) {
+    toast('Gere o contrato primeiro!');
+    return;
+  }
+  navigator.clipboard.writeText(el.textContent)
+    .then(function() { toast('Contrato copiado!'); })
+    .catch(function() { toast('Erro ao copiar. Selecione o texto manualmente.'); });
+}
+
+function imprimirContrato() {
+  var el = document.getElementById('cont-content');
+  if (!el || !el.textContent.trim()) {
+    toast('Gere o contrato primeiro!');
+    return;
+  }
+  var texto = el.textContent;
+  var win = window.open('', '_blank');
+  if (!win) {
+    toast('Popup bloqueado! Permita popups para este site e tente novamente.');
+    return;
+  }
+  win.document.write(
+    '<!DOCTYPE html><html lang="pt-BR"><head>' +
+    '<meta charset="UTF-8">' +
+    '<title>Contrato DRPS</title>' +
+    '<style>' +
+    'body { font-family: Georgia, serif; font-size: 13px; line-height: 1.9; color: #1a1916; padding: 40px 60px; max-width: 800px; margin: 0 auto; }' +
+    'pre { white-space: pre-wrap; font-family: Georgia, serif; font-size: 13px; line-height: 1.9; }' +
+    '@media print {' +
+    '  body { padding: 20px 40px; }' +
+    '  @page { margin: 2cm; }' +
+    '}' +
+    '</style>' +
+    '</head><body>' +
+    '<pre>' + texto.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</pre>' +
+    '<script>window.onload = function() { window.print(); }<\/script>' +
+    '</body></html>'
+  );
+  win.document.close();
+}
+
+// ═══════════════════════════════════════════════════
 // INICIALIZAÇÃO
 // ═══════════════════════════════════════════════════
 renderDash();
