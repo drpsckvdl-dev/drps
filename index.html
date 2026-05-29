@@ -377,6 +377,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       <div class="field"><label>Total de colaboradores *</label><input id="f-colab" type="number" placeholder="Ex: 80" oninput="calcValorAuto()"></div>
       <div class="field"><label>Nº de setores (máx 10)</label><input id="f-nset" type="number" placeholder="Ex: 5" max="10"></div>
       <div class="field form-full"><label>Nome dos setores (um por linha) *</label><textarea id="f-setores" placeholder="Administrativo&#10;Operacional&#10;Atendimento&#10;TI" rows="4"></textarea></div>
+      <div class="field form-full"><label>Funções / Cargos dos colaboradores (um por linha) *</label><textarea id="f-funcoes" placeholder="Gerente&#10;Coordenador&#10;Analista&#10;Assistente&#10;Operador" rows="4"></textarea><div class="field-note">Liste todas as funções/cargos que serão avaliados. O colaborador selecionará a sua no formulário.</div></div>
     </div>
 
     <div class="section-label">Condições comerciais</div>
@@ -754,6 +755,75 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 
 <!-- ═══════════════════ PROPOSTA ════════════════════ -->
 
+
+<!-- ═══════════════════ FORMULÁRIO RESPONDENTE ══════ -->
+<div id="pane-responder" class="pane">
+  <div style="max-width:700px;margin:0 auto">
+    <div class="card">
+      <div style="text-align:center;padding:8px 0 16px">
+        <div style="font-size:18px;font-weight:600;color:var(--azul)">Diagnóstico de Riscos Psicossociais</div>
+        <div style="font-size:13px;color:var(--text3);margin-top:4px">NR-1 | Portaria MTE nº 1.419/2024</div>
+        <div style="background:var(--verde-light);border-radius:var(--radius-sm);padding:8px 14px;font-size:12px;color:var(--verde);margin-top:10px;line-height:1.6">
+          Este questionário é <strong>anônimo e confidencial</strong>. As respostas são tratadas coletivamente, conforme a LGPD.
+        </div>
+      </div>
+
+      <div class="section-label">Identificação</div>
+      <div class="form-grid">
+        <div class="field"><label>Empresa (CNPJ)</label><input id="resp-cnpj" type="text" readonly style="background:var(--surface2);color:var(--text3);cursor:not-allowed"></div>
+        <div class="field"><label>Setor *</label>
+          <select id="resp-setor" required>
+            <option value="">— Selecione seu setor —</option>
+          </select>
+        </div>
+        <div class="field"><label>Função / Cargo *</label>
+          <select id="resp-cargo-sel" required style="display:none">
+            <option value="">— Selecione sua função —</option>
+          </select>
+          <input id="resp-cargo" type="text" placeholder="Seu cargo atual" required>
+        </div>
+        <div class="field"><label>Tempo de empresa *</label>
+          <select id="resp-tempo" required>
+            <option value="">— Selecione —</option>
+            <option>Menos de 6 meses</option>
+            <option>De 6 meses a 1 ano</option>
+            <option>De 1 a 3 anos</option>
+            <option>De 3 a 5 anos</option>
+            <option>Mais de 5 anos</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:var(--azul-light);border-radius:var(--radius-sm);padding:10px 16px;font-size:12px;color:var(--azul-mid);margin-bottom:12px;line-height:1.7">
+      <strong>Como responder:</strong> Use a escala abaixo para cada afirmação sobre seu ambiente de trabalho.<br>
+      <strong>1 = Nunca &nbsp;·&nbsp; 2 = Raramente &nbsp;·&nbsp; 3 = Às vezes &nbsp;·&nbsp; 4 = Frequentemente &nbsp;·&nbsp; 5 = Sempre</strong>
+    </div>
+
+    <div id="eixos-form-container"></div>
+
+    <div class="card" style="margin-top:12px">
+      <div class="section-label" style="margin-top:0">Observações (opcional)</div>
+      <div class="field">
+        <textarea id="resp-obs" placeholder="Se desejar, compartilhe situações, sugestões ou qualquer aspecto do seu ambiente de trabalho..." rows="4"></textarea>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:center;margin:16px 0">
+      <button class="btn btn-success" onclick="enviarRespostas()" style="padding:12px 32px;font-size:14px">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-width="2.5"/></svg>
+        Enviar respostas
+      </button>
+    </div>
+
+    <div id="form-sucesso" style="display:none;text-align:center;padding:24px">
+      <div style="font-size:48px;margin-bottom:12px">✅</div>
+      <div style="font-size:18px;font-weight:600;color:var(--verde)">Respostas enviadas com sucesso!</div>
+      <div style="font-size:13px;color:var(--text3);margin-top:8px;line-height:1.7">Obrigado(a) pela participação.<br>Suas respostas foram registradas de forma anônima.<br>Você pode fechar esta aba.</div>
+    </div>
+  </div>
+</div>
+
 </div><!-- /content -->
 </div><!-- /main -->
 </div><!-- /app -->
@@ -890,6 +960,7 @@ function salvarCliente() {
     colaboradores: document.getElementById('f-colab').value,
     nSetores: document.getElementById('f-nset').value,
     setores: document.getElementById('f-setores').value,
+    funcoes: document.getElementById('f-funcoes').value,
     valor: document.getElementById('f-valor').value,
     pagamento: document.getElementById('f-pgto').value,
     dataAssinatura: document.getElementById('f-data').value,
@@ -1668,6 +1739,7 @@ function abrirFichaCliente(c) {
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">' +
     '<div style="background:#F7F6F2;padding:10px 12px;border-radius:6px"><div style="color:#A8A59E;margin-bottom:2px">Colaboradores</div><div style="font-weight:500;color:#1A1916">' + (c.colaboradores||'—') + '</div></div>' +
     '<div style="background:#F7F6F2;padding:10px 12px;border-radius:6px"><div style="color:#A8A59E;margin-bottom:2px">Setores avaliados</div><div style="font-weight:500;color:#1A1916">' + (sets.join(', ')||'—') + '</div></div>' +
+    '<div style="background:#F7F6F2;padding:10px 12px;border-radius:6px"><div style="color:#A8A59E;margin-bottom:2px">Funções avaliadas</div><div style="font-weight:500;color:#1A1916">' + ((c.funcoes||'').split('\n').filter(function(f){return f.trim();}).join(', ')||'—') + '</div></div>' +
     '<div style="background:#E8F0F8;padding:10px 12px;border-radius:6px"><div style="color:#A8A59E;margin-bottom:2px">Valor negociado</div><div style="font-weight:600;color:#1A3A5C;font-size:14px">' + (c.valor||'—') + '</div></div>' +
     '<div style="background:#F7F6F2;padding:10px 12px;border-radius:6px"><div style="color:#A8A59E;margin-bottom:2px">Forma de pagamento</div><div style="font-weight:500;color:#1A1916">' + (c.pagamento||'—') + '</div></div>' +
     '<div style="background:#F7F6F2;padding:10px 12px;border-radius:6px"><div style="color:#A8A59E;margin-bottom:2px">Data de assinatura</div><div style="font-weight:500;color:#1A1916">' + (c.dataAssinatura||'—') + '</div></div>' +
@@ -1732,6 +1804,7 @@ function editarCliente(cnpj) {
     document.getElementById('f-colab').value = c.colaboradores||'';
     document.getElementById('f-nset').value = c.nSetores||'';
     document.getElementById('f-setores').value = c.setores||'';
+    document.getElementById('f-funcoes').value = c.funcoes||'';
     document.getElementById('f-valor').value = c.valor||'';
     document.getElementById('f-pgto').value = c.pagamento||'50% na assinatura + 50% na entrega';
     document.getElementById('f-data').value = c.dataAssinatura||'';
@@ -2959,6 +3032,354 @@ function imprimirContrato() {
   win.document.open();
   win.document.write(html);
   win.document.close();
+}
+
+// ═══════════════════════════════════════════════════
+// FORMULÁRIO PRÓPRIO DO SISTEMA
+// ═══════════════════════════════════════════════════
+
+var EIXOS_FORM = [
+  {nome: "Assédio no trabalho", perguntas: [
+    "Sinto que sou tratado(a) com respeito pelos meus colegas de trabalho.",
+    "Sinto que sou tratado(a) com respeito pela minha liderança direta.",
+    "Consigo trabalhar em um ambiente livre de discriminação.",
+    "Sinto-me seguro(a) para relatar situações de desrespeito sem medo de retaliação."
+  ]},
+  {nome: "Suporte e apoio no trabalho", perguntas: [
+    "Recebo suporte adequado da minha liderança quando preciso.",
+    "Tenho apoio dos meus colegas para realizar minhas tarefas.",
+    "Quando enfrento dificuldades, há pessoas disponíveis para me ajudar.",
+    "A empresa oferece recursos suficientes para eu desempenhar bem meu trabalho."
+  ]},
+  {nome: "Gestão de mudanças organizacionais", perguntas: [
+    "Quando ocorrem mudanças, sou informado(a) com antecedência adequada.",
+    "As mudanças organizacionais são comunicadas de forma clara e transparente.",
+    "Tenho oportunidade de expressar minha opinião antes de mudanças importantes.",
+    "Consigo me adaptar às mudanças da empresa sem grandes dificuldades."
+  ]},
+  {nome: "Clareza de papel e função", perguntas: [
+    "Tenho clareza sobre minhas responsabilidades e atribuições no trabalho.",
+    "Sei exatamente o que é esperado de mim no meu cargo.",
+    "As metas e objetivos do meu trabalho são claros e bem definidos.",
+    "Consigo distinguir claramente o que faz parte das minhas funções."
+  ]},
+  {nome: "Recompensas e reconhecimento", perguntas: [
+    "Sinto que meu trabalho é reconhecido e valorizado pela empresa.",
+    "Recebo feedback positivo quando desempenho bem minhas funções.",
+    "Sinto que minha remuneração é compatível com as responsabilidades do meu cargo.",
+    "Tenho oportunidades de crescimento e desenvolvimento profissional aqui."
+  ]},
+  {nome: "Autonomia e controle no trabalho", perguntas: [
+    "Tenho autonomia para tomar decisões relacionadas às minhas tarefas.",
+    "Posso organizar minha rotina de trabalho da forma que considero mais eficiente.",
+    "Consigo influenciar decisões que afetam diretamente meu trabalho.",
+    "Tenho liberdade para sugerir e implementar melhorias no meu processo."
+  ]},
+  {nome: "Justiça organizacional", perguntas: [
+    "Sinto que as decisões da empresa são tomadas de forma justa e imparcial.",
+    "As promoções e reconhecimentos são baseados em mérito e desempenho.",
+    "As regras e políticas são aplicadas de forma igual para todos os colaboradores.",
+    "Quando cometo um erro, recebo tratamento justo e proporcional."
+  ]},
+  {nome: "Segurança e ausência de eventos traumáticos", perguntas: [
+    "Meu ambiente de trabalho é seguro, sem riscos de violência física ou verbal.",
+    "Não fui exposto(a) a situações traumáticas no exercício das minhas funções.",
+    "A empresa oferece suporte em casos de situações difíceis no trabalho.",
+    "Sinto-me emocionalmente seguro(a) no meu ambiente de trabalho."
+  ]},
+  {nome: "Nível adequado de demanda (subcarga)", perguntas: [
+    "A quantidade de trabalho é suficiente para manter meu engajamento.",
+    "Sinto que minhas habilidades são aproveitadas de forma adequada.",
+    "Meu trabalho me proporciona desafios e oportunidades de aprendizado.",
+    "Sinto que contribuo de forma significativa para os resultados da equipe."
+  ]},
+  {nome: "Equilíbrio de demandas (sobrecarga)", perguntas: [
+    "Consigo realizar todas as tarefas dentro do horário de trabalho estabelecido.",
+    "A quantidade de trabalho é compatível com o tempo disponível.",
+    "Não me sinto pressionado(a) a trabalhar além do horário normal com frequência.",
+    "Consigo cumprir meus prazos sem comprometer minha saúde e bem-estar."
+  ]},
+  {nome: "Qualidade dos relacionamentos", perguntas: [
+    "O relacionamento entre os membros da minha equipe é saudável e colaborativo.",
+    "Consigo resolver conflitos com meus colegas de forma respeitosa.",
+    "O ambiente de trabalho é positivo e agradável.",
+    "Há espírito de cooperação e trabalho em equipe no meu setor."
+  ]},
+  {nome: "Qualidade da comunicação", perguntas: [
+    "As informações necessárias chegam de forma clara e em tempo hábil.",
+    "A comunicação entre os setores da empresa funciona de forma eficiente.",
+    "Tenho acesso fácil às informações necessárias para executar minhas tarefas.",
+    "A liderança comunica claramente as prioridades e estratégias da empresa."
+  ]},
+  {nome: "Trabalho remoto e conexão com equipe", perguntas: [
+    "Consigo manter boa comunicação com minha equipe mesmo remotamente.",
+    "Tenho as ferramentas tecnológicas necessárias para trabalhar bem remotamente.",
+    "Não me sinto isolado(a) ou desconectado(a) da equipe e da empresa.",
+    "Consigo estabelecer limites saudáveis entre vida profissional e pessoal."
+  ]},
+];
+
+var formClienteCnpj = '';
+var formClienteNome = '';
+
+function prepararFormulario() {
+  var cnpj = document.getElementById('sel-cliente-form').value;
+  var c = clientes.find(function(cl){ return cl.cnpj === cnpj; });
+  var preview = document.getElementById('form-preview');
+  var infoBox = document.getElementById('form-info-box');
+  var btnAbrir = document.getElementById('btn-abrir-form');
+  var btnCopiar = document.getElementById('btn-copiar-form');
+
+  if (!c) {
+    preview.style.display = 'none';
+    btnAbrir.style.display = 'none';
+    btnCopiar.style.display = 'none';
+    return;
+  }
+
+  formClienteCnpj = c.cnpj;
+  formClienteNome = c.nome;
+
+  var sets = (c.setores||'').split('\n').filter(function(s){ return s.trim(); });
+  preview.style.display = 'block';
+  infoBox.innerHTML =
+    '<strong>Empresa:</strong> ' + c.nome + ' &nbsp;·&nbsp; <strong>CNPJ:</strong> ' + c.cnpj + '<br>' +
+    '<strong>Setores no formulário:</strong> ' + sets.join(', ') + '<br>' +
+    '<strong>Funções no formulário:</strong> ' + ((c.funcoes||'').split('\n').filter(function(f){return f.trim();}).join(', ')||'não cadastradas') + '<br>' +
+    '<strong>Escala:</strong> 1 = Nunca · 2 = Raramente · 3 = Às vezes · 4 = Frequentemente · 5 = Sempre';
+
+  btnAbrir.style.display = 'inline-flex';
+  btnCopiar.style.display = 'inline-flex';
+
+  setStatus(c.cnpj, 'forms');
+  renderDash();
+}
+
+function gerarLinkFormulario() {
+  var cnpj = document.getElementById('sel-cliente-form').value;
+  return window.location.href.split('?')[0] + '?form=' + encodeURIComponent(cnpj);
+}
+
+function abrirFormularioCliente() {
+  var cnpj = document.getElementById('sel-cliente-form').value;
+  var c = clientes.find(function(cl){ return cl.cnpj === cnpj; });
+  if (!c) { toast('Selecione um cliente primeiro'); return; }
+  abrirFormularioResponder(c);
+}
+
+function copiarLinkFormulario() {
+  var link = gerarLinkFormulario();
+  navigator.clipboard.writeText(link)
+    .then(function(){ toast('Link copiado! Envie para os colaboradores.'); })
+    .catch(function(){ toast('Copie o link da barra do navegador após abrir o formulário.'); });
+}
+
+function abrirFormularioResponder(c) {
+  var sets = (c.setores||'').split('\n').filter(function(s){ return s.trim(); });
+
+  // Preencher campos de identificação
+  document.getElementById('resp-cnpj').value = c.cnpj + ' — ' + c.nome;
+  document.getElementById('resp-cargo').value = '';
+  document.getElementById('resp-obs').value = '';
+
+  // Popular setores
+  var selSetor = document.getElementById('resp-setor');
+  selSetor.innerHTML = '<option value="">— Selecione seu setor —</option>';
+  sets.forEach(function(s) {
+    var opt = document.createElement('option');
+    opt.value = s.trim();
+    opt.textContent = s.trim();
+    selSetor.appendChild(opt);
+  });
+
+  // Popular funções
+  var funcoes = (c.funcoes||'').split('\n').filter(function(f){ return f.trim(); });
+  var selCargo = document.getElementById('resp-cargo-sel');
+  if (selCargo) {
+    selCargo.innerHTML = '<option value="">— Selecione sua função —</option>';
+    funcoes.forEach(function(f) {
+      var opt = document.createElement('option');
+      opt.value = f.trim();
+      opt.textContent = f.trim();
+      selCargo.appendChild(opt);
+    });
+    // Mostrar select se tiver funções, senão mostrar input livre
+    if (funcoes.length > 0) {
+      selCargo.style.display = 'block';
+      var inputCargo = document.getElementById('resp-cargo');
+      if (inputCargo) inputCargo.style.display = 'none';
+    } else {
+      selCargo.style.display = 'none';
+      var inputCargo = document.getElementById('resp-cargo');
+      if (inputCargo) inputCargo.style.display = 'block';
+    }
+  }
+
+  // Gerar eixos
+  renderEixosFormulario();
+
+  // Navegar para a aba do formulário
+  document.querySelectorAll('.pane').forEach(function(p){ p.classList.remove('active'); });
+  document.getElementById('pane-responder').classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(function(b){ b.classList.remove('active'); });
+
+  // Atualizar topbar
+  document.getElementById('page-title').textContent = 'Formulário DRPS';
+  document.getElementById('page-sub').textContent = c.nome + ' — ' + c.cnpj;
+
+  // Esconder sucesso se estava visível
+  document.getElementById('form-sucesso').style.display = 'none';
+  document.getElementById('eixos-form-container').style.display = 'block';
+
+  // Guardar referência do cliente
+  formClienteCnpj = c.cnpj;
+  formClienteNome = c.nome;
+
+  window.scrollTo(0, 0);
+}
+
+function renderEixosFormulario() {
+  var container = document.getElementById('eixos-form-container');
+  if (!container) return;
+
+  container.innerHTML = EIXOS_FORM.map(function(eixo, ei) {
+    var perguntas = eixo.perguntas.map(function(p, pi) {
+      var id = 'eq_' + ei + '_' + pi;
+      return '<div style="padding:10px 0;border-bottom:0.5px solid var(--border2)">' +
+        '<div style="font-size:13px;color:var(--text);margin-bottom:8px">' + (pi+1) + '. ' + p + '</div>' +
+        '<div style="display:flex;gap:6px;flex-wrap:wrap">' +
+        [1,2,3,4,5].map(function(v) {
+          var labels = {1:'Nunca', 2:'Raramente', 3:'Às vezes', 4:'Frequentemente', 5:'Sempre'};
+          var cores = {1:'#E8F5ED', 2:'#F1F8E9', 3:'#FFF9C4', 4:'#FFE0B2', 5:'#FFCDD2'};
+          var coresT = {1:'#1A5C3A', 2:'#558B2F', 3:'#7A4A00', 4:'#E65100', 5:'#B71C1C'};
+          return '<label style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;flex:1;min-width:56px">' +
+            '<input type="radio" name="' + id + '" value="' + v + '" style="display:none" onchange="marcarResposta(this)">' +
+            '<div class="opcao-btn" data-id="' + id + '" data-val="' + v + '" ' +
+            'style="width:100%;padding:6px 4px;text-align:center;border-radius:var(--radius-sm);' +
+            'border:1.5px solid ' + cores[v] + ';background:' + cores[v] + ';' +
+            'color:' + coresT[v] + ';font-size:11px;font-weight:500;cursor:pointer;transition:.1s" ' +
+            'data-eid="' + ei + '" data-pid="' + pi + '" data-val="' + v + '">' +
+            v + '<br><span style="font-size:10px;font-weight:400">' + labels[v] + '</span>' +
+            '</div></label>';
+        }).join('') +
+        '</div></div>';
+    }).join('');
+
+    return '<div class="card" style="margin-bottom:12px">' +
+      '<div style="font-size:13px;font-weight:600;color:var(--azul);margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--azul-light)">' +
+      'Eixo ' + (ei+1) + ' — ' + eixo.nome + '</div>' +
+      perguntas + '</div>';
+  }).join('');
+}
+
+// Event delegation para os botões do formulário
+document.addEventListener('click', function(e) {
+  var btn = e.target.closest('.opcao-btn');
+  if (!btn) return;
+  var eid = btn.getAttribute('data-eid');
+  var pid = btn.getAttribute('data-pid');
+  var val = parseInt(btn.getAttribute('data-val'));
+  if (eid !== null && pid !== null) {
+    selecionarOpcao('eq_' + eid + '_' + pid, val);
+    var radio = document.querySelector('input[name="eq_' + eid + '_' + pid + '"][value="' + val + '"]');
+    if (radio) radio.checked = true;
+  }
+});
+
+function selecionarOpcao(id, val) {
+  // Desmarcar todas as opções do grupo
+  document.querySelectorAll('[data-id="' + id + '"]').forEach(function(btn) {
+    btn.style.opacity = '0.5';
+    btn.style.transform = 'scale(0.95)';
+    btn.style.borderWidth = '1.5px';
+  });
+  // Marcar a selecionada
+  var sel = document.querySelector('[data-id="' + id + '"][data-val="' + val + '"]');
+  if (sel) {
+    sel.style.opacity = '1';
+    sel.style.transform = 'scale(1.05)';
+    sel.style.borderWidth = '2.5px';
+  }
+  // Marcar o radio
+  var radio = document.querySelector('input[name="' + id + '"][value="' + val + '"]');
+  if (radio) radio.checked = true;
+}
+
+function marcarResposta(input) {
+  selecionarOpcao(input.name, parseInt(input.value));
+}
+
+function enviarRespostas() {
+  var cnpj = document.getElementById('resp-cnpj').value;
+  var setor = document.getElementById('resp-setor').value;
+  var selCargo = document.getElementById('resp-cargo-sel');
+  var cargo = (selCargo && selCargo.style.display !== 'none') 
+    ? selCargo.value 
+    : document.getElementById('resp-cargo').value;
+  var tempo = document.getElementById('resp-tempo').value;
+
+  if (!setor) { toast('Selecione seu setor'); return; }
+  if (!cargo || cargo === '') { toast('Selecione ou informe sua função/cargo'); return; }
+  if (!tempo) { toast('Selecione seu tempo de empresa'); return; }
+
+  // Coletar respostas
+  var respostas = {};
+  var faltando = [];
+  EIXOS_FORM.forEach(function(eixo, ei) {
+    eixo.perguntas.forEach(function(p, pi) {
+      var id = 'eq_' + ei + '_' + pi;
+      var radio = document.querySelector('input[name="' + id + '"]:checked');
+      if (radio) {
+        respostas[id] = parseInt(radio.value);
+      } else {
+        faltando.push('Eixo ' + (ei+1) + ', pergunta ' + (pi+1));
+      }
+    });
+  });
+
+  if (faltando.length > 0) {
+    toast('Responda todas as perguntas. Faltam ' + faltando.length + ' respostas.');
+    return;
+  }
+
+  // Calcular médias por eixo
+  var medias = {};
+  EIXOS_FORM.forEach(function(eixo, ei) {
+    var soma = 0;
+    eixo.perguntas.forEach(function(p, pi) {
+      soma += respostas['eq_' + ei + '_' + pi];
+    });
+    medias['E' + (ei+1)] = (soma / eixo.perguntas.length).toFixed(2);
+  });
+
+  // Salvar resposta
+  var chave = 'drps_respostas_' + formClienteCnpj;
+  var resps = JSON.parse(localStorage.getItem(chave) || '[]');
+  resps.push({
+    timestamp: new Date().toISOString(),
+    cnpj: formClienteCnpj,
+    setor: setor,
+    cargo: cargo,
+    tempo: tempo,
+    medias: medias,
+    obs: document.getElementById('resp-obs').value
+  });
+  localStorage.setItem(chave, JSON.stringify(resps));
+
+  // Atualizar status
+  setStatus(formClienteCnpj, 'coleta');
+  salvar();
+  renderDash();
+
+  // Mostrar sucesso
+  document.getElementById('eixos-form-container').style.display = 'none';
+  document.getElementById('form-sucesso').style.display = 'block';
+  window.scrollTo(0, 0);
+  toast('Respostas enviadas com sucesso!');
+}
+
+function gerarLinkCliente() {
+  prepararFormulario();
 }
 
 // ═══════════════════════════════════════════════════
